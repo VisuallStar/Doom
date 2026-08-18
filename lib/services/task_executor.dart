@@ -228,16 +228,16 @@ Rules:
       }
 
       // Adaptive delay: give Android apps time to transition screens, load data, or open keyboards
-      int delay = 1200; // Default 1.2s delay for most actions
+      int delay = 800; // Default 0.8s delay for most actions
       if (lastAction == 'open_app') {
-        delay = 3000; // Apps need ~3 seconds to fully cold-start and render
+        delay = 2000; // Apps need ~2 seconds to fully cold-start and render
       } else if (lastAction == 'type_text') {
         delay =
-            2000; // Typing involves keyboards and often triggers heavy network requests (search)
+            1200; // Typing involves keyboards and often triggers heavy network requests (search)
       } else if (lastAction == 'click_text' || lastAction == 'click_at') {
-        delay = 1500; // Clicking usually triggers a screen transition
+        delay = 1000; // Clicking usually triggers a screen transition
       } else if (lastAction == 'scroll') {
-        delay = 1000; // Scrolling is relatively fast
+        delay = 600; // Scrolling is relatively fast
       }
       await Future.delayed(Duration(milliseconds: delay));
 

@@ -28,6 +28,10 @@ class AgentAccessibilityService : AccessibilityService() {
         var eventListener: ((Map<String, Any>) -> Unit)? = null
 
         fun isRunning(): Boolean = instance != null
+
+        data class NotificationEntry(val packageName: String, val text: String, val timestamp: Long)
+        val recentNotifications = mutableListOf<NotificationEntry>()
+        private const val MAX_NOTIFICATIONS = 20
     }
 
     override fun onServiceConnected() {
@@ -70,6 +74,18 @@ class AgentAccessibilityService : AccessibilityService() {
             AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
                 val map = mapOf("type" to "scroll")
                 listener(map)
+            }
+            AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED -> {
+                val text = event.text?.joinToString(" ") ?: ""
+                val pkg = event.packageName?.toString() ?: "unknown"
+                if (text.isNotBlank()) {
+                    synchronized(recentNotifications) {
+                        recentNotifications.add(0, NotificationEntry(pkg, text, System.currentTimeMillis()))
+                        if (recentNotifications.size > MAX_NOTIFICATIONS) {
+                            recentNotifications.removeAt(recentNotifications.size - 1)
+                        }
+                    }
+                }
             }
         }
     }

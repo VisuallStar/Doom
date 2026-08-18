@@ -1,5 +1,7 @@
 import 'package:volume_controller/volume_controller.dart';
 import 'package:screen_brightness/screen_brightness.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 class SystemControlService {
   SystemControlService() {
@@ -47,5 +49,31 @@ class SystemControlService {
     } catch (e) {
       return -1;
     }
+  }
+
+  /// Toggle the device flashlight/torch
+  static const _torchChannel = MethodChannel('com.privateagent/torch');
+  
+  Future<String> toggleTorch(bool enabled) async {
+    try {
+      final result = await _torchChannel.invokeMethod<bool>(
+        'toggleTorch',
+        {'enabled': enabled},
+      );
+      if (result == true) {
+        return enabled ? 'Flashlight turned on.' : 'Flashlight turned off.';
+      }
+      return 'Could not control flashlight.';
+    } catch (e) {
+      return 'Error controlling flashlight: $e';
+    }
+  }
+
+  /// Get current date, time, and day of week
+  String getDateTime() {
+    final now = DateTime.now();
+    final dateFormat = DateFormat('EEEE, MMMM d, yyyy');
+    final timeFormat = DateFormat('h:mm a');
+    return 'Today is ${dateFormat.format(now)}.\nThe current time is ${timeFormat.format(now)}.';
   }
 }

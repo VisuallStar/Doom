@@ -114,6 +114,27 @@ class ActionHandler {
           );
           break;
 
+        case 'get_datetime':
+          result = _systemControl.getDateTime();
+          break;
+
+        case 'toggle_torch':
+          result = await _systemControl.toggleTorch(
+            action.params['enabled'] == true,
+          );
+          break;
+
+        case 'whatsapp_call':
+          result = await _communication.makeWhatsAppCall(
+            contactName: action.params['contact_name'] as String?,
+            phoneNumber: action.params['phone_number'] as String?,
+          );
+          break;
+
+        case 'read_notifications':
+          result = await _screenAutomation.readNotifications();
+          break;
+
         // ─── Screen Automation Actions ────────────────────────
 
         case 'read_screen':

@@ -32,13 +32,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   bool _isOverlayGranted = false;
 
   // AI config states
-  String _selectedProvider = 'deepseek';
+  String _selectedProvider = 'gemini';
   final TextEditingController _apiKeyController = TextEditingController();
   final TextEditingController _baseUrlController = TextEditingController(
-    text: 'https://api.deepseek.com',
+    text: 'https://generativelanguage.googleapis.com/v1beta/openai',
   );
   final TextEditingController _modelController = TextEditingController(
-    text: 'deepseek-chat',
+    text: 'gemini-2.0-flash',
   );
   bool _obscureKey = true;
   bool _isValidating = false;
@@ -157,9 +157,15 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     setState(() {
       _selectedProvider = provider;
       _validationError = null;
-      if (provider == 'deepseek') {
-        _baseUrlController.text = 'https://api.deepseek.com';
-        _modelController.text = 'deepseek-chat';
+      if (provider == 'gemini') {
+        _baseUrlController.text = 'https://generativelanguage.googleapis.com/v1beta/openai';
+        _modelController.text = 'gemini-2.0-flash';
+      } else if (provider == 'claude') {
+        _baseUrlController.text = 'https://api.anthropic.com/v1';
+        _modelController.text = 'claude-sonnet-4-20250514';
+      } else if (provider == 'openai') {
+        _baseUrlController.text = 'https://api.openai.com/v1';
+        _modelController.text = 'gpt-4o-mini';
       } else if (provider == 'groq') {
         _baseUrlController.text = 'https://api.groq.com/openai/v1';
         _modelController.text = 'llama-3.3-70b-versatile';
@@ -1115,9 +1121,23 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               physics: const BouncingScrollPhysics(),
               children: [
                 _buildProviderCard(
-                  'deepseek',
-                  'DeepSeek',
-                  Icons.analytics_rounded,
+                  'gemini',
+                  'Gemini',
+                  Icons.auto_awesome_rounded,
+                  isDark,
+                ),
+                const SizedBox(width: 10),
+                _buildProviderCard(
+                  'claude',
+                  'Claude',
+                  Icons.psychology_alt_rounded,
+                  isDark,
+                ),
+                const SizedBox(width: 10),
+                _buildProviderCard(
+                  'openai',
+                  'OpenAI',
+                  Icons.rocket_launch_rounded,
                   isDark,
                 ),
                 const SizedBox(width: 10),
@@ -1183,14 +1203,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 _buildFormTextField(
                   controller: _baseUrlController,
                   label: 'API Base URL',
-                  hint: 'https://api.deepseek.com',
+                  hint: 'https://generativelanguage.googleapis.com/v1beta/openai',
                   isDark: isDark,
                 ),
                 const SizedBox(height: 16),
                 _buildFormTextField(
                   controller: _modelController,
                   label: 'Model Name',
-                  hint: 'deepseek-chat',
+                  hint: 'gemini-2.0-flash',
                   isDark: isDark,
                   suffix: IconButton(
                     icon: _isValidating

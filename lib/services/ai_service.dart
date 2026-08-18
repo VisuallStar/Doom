@@ -11,8 +11,8 @@ class AiResponse {
 }
 
 class AiService {
-  static const String _defaultBaseUrl = 'https://api.deepseek.com';
-  static const String _defaultModel = 'deepseek-chat';
+  static const String _defaultBaseUrl = 'https://generativelanguage.googleapis.com/v1beta/openai';
+  static const String _defaultModel = 'gemini-2.0-flash';
   static const String nvidiaBaseUrl = 'https://integrate.api.nvidia.com/v1';
   static const String nvidiaDefaultModel = 'z-ai/glm-5.2';
 
@@ -77,6 +77,11 @@ SIMPLE ACTIONS (single step only):
 - set_brightness: {"level": 50} - Sets brightness (0-100)
 - read_screen: {} - Read what's currently on the screen
 - press_back: {} - Press the back button
+- get_datetime: {} - Get current date, time, and day of week
+- toggle_torch: {"enabled": true} - Turn flashlight/torch on or off
+- whatsapp_call: {"contact_name": "John"} - Make a WhatsApp voice call to a contact
+- read_notifications: {} - Read recent notifications from the notification tray
+- send_email: {"to": "email@example.com", "subject": "Hi", "body": "Hello"} - Send an email
 
 MULTI-STEP TASK (for anything that requires more than one action):
 - execute_task: {"goal": "description of the full task"} - Automatically reads screen, taps, scrolls, types step by step
@@ -192,6 +197,10 @@ Answer questions, explain concepts, brainstorm, write emails/messages, and chat 
         _model == nvidiaDefaultModel &&
         _maxTokens < 4096) {
       return 4096;
+    }
+    // Gemini models support larger context, ensure reasonable output
+    if (_baseUrl.contains('generativelanguage.googleapis.com') && _maxTokens < 2048) {
+      return 2048;
     }
     return _maxTokens;
   }
@@ -502,15 +511,16 @@ Answer questions, explain concepts, brainstorm, write emails/messages, and chat 
                 'Authorization': 'Bearer $_apiKey',
                 'HTTP-Referer': 'https://github.com/orailnoor/private-agent',
                 'X-Title': 'PrivateAgent',
+                'Connection': 'keep-alive',
               },
               body: jsonEncode({
                 'model': _model,
                 'messages': messages,
-                'temperature': _temperature,
+                'temperature': 0.3, // Lower temp for more deterministic execution
                 'max_tokens': _effectiveMaxTokens,
               }),
             )
-            .timeout(const Duration(minutes: 30));
+            .timeout(const Duration(seconds: 60));
 
         if (response.statusCode != 200) {
           String errorMessage = response.body;

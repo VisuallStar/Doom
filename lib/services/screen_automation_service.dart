@@ -348,4 +348,17 @@ class ScreenAutomationService {
       return null;
     }
   }
+
+  /// Read recent notifications from the notification tray
+  Future<String> readNotifications() async {
+    try {
+      final result = await _channel.invokeMethod<String>('readNotifications');
+      if (result == null || result.isEmpty) {
+        return 'No recent notifications found.';
+      }
+      return result;
+    } catch (e) {
+      return 'Could not read notifications: $e';
+    }
+  }
 }

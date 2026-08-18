@@ -17,6 +17,8 @@
         android:name="android.permission.SYSTEM_ALERT_WINDOW"
         tools:node="remove" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
 
     <!-- For speech recognition -->
     <queries>
@@ -41,6 +43,10 @@
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="mailto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" android:host="wa.me" />
         </intent>
     </queries>
 

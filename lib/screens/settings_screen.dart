@@ -472,7 +472,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 controller: _baseUrlController,
                 decoration: _buildInputDecoration(
                   labelText: 'API Base URL',
-                  hintText: 'https://api.deepseek.com',
+                  hintText: 'https://generativelanguage.googleapis.com/v1beta/openai',
                   prefixIcon: const Icon(Icons.dns_rounded, size: 18),
                 ),
               ),
@@ -481,6 +481,39 @@ class _SettingsScreenState extends State<SettingsScreen>
                 spacing: 8,
                 runSpacing: 4,
                 children: [
+                  ActionChip(
+                    label: const Text(
+                      'Gemini',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    tooltip: 'Google Gemini API',
+                    onPressed: () {
+                      _baseUrlController.text = 'https://generativelanguage.googleapis.com/v1beta/openai';
+                      _modelController.text = 'gemini-2.0-flash';
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text(
+                      'Claude',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    tooltip: 'Anthropic Claude API',
+                    onPressed: () {
+                      _baseUrlController.text = 'https://api.anthropic.com/v1';
+                      _modelController.text = 'claude-sonnet-4-20250514';
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text(
+                      'OpenAI',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    tooltip: 'OpenAI GPT API',
+                    onPressed: () {
+                      _baseUrlController.text = 'https://api.openai.com/v1';
+                      _modelController.text = 'gpt-4o-mini';
+                    },
+                  ),
                   ActionChip(
                     label: const Text(
                       'Local Server',
@@ -499,14 +532,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                       _baseUrlController.text = 'https://ollama.com/v1';
                       _modelController.text = 'gemma3:4b';
                     },
-                  ),
-                  ActionChip(
-                    label: const Text(
-                      'DeepSeek',
-                      style: TextStyle(fontSize: 11),
-                    ),
-                    onPressed: () =>
-                        _baseUrlController.text = 'https://api.deepseek.com',
                   ),
                   ActionChip(
                     label: const Text('Groq', style: TextStyle(fontSize: 11)),
@@ -541,7 +566,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       controller: _modelController,
                       decoration: _buildInputDecoration(
                         labelText: 'Model',
-                        hintText: 'deepseek-chat',
+                        hintText: 'gemini-2.0-flash',
                         prefixIcon: const Icon(
                           Icons.smart_toy_rounded,
                           size: 18,

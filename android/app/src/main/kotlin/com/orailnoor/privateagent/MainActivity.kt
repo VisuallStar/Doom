@@ -13,6 +13,8 @@ import android.view.WindowManager
 import android.view.View
 import android.widget.Button
 import android.net.Uri
+import android.hardware.camera2.CameraManager
+import android.content.Context
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.privateagent/accessibility"
@@ -22,6 +24,23 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // Torch control channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.privateagent/torch").setMethodCallHandler { call, result ->
+            if (call.method == "toggleTorch") {
+                val enabled = call.argument<Boolean>("enabled") ?: false
+                try {
+                    val cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+                    val cameraId = cameraManager.cameraIdList[0]
+                    cameraManager.setTorchMode(cameraId, enabled)
+                    result.success(true)
+                } catch (e: Exception) {
+                    result.success(false)
+                }
+            } else {
+                result.notImplemented()
+            }
+        }
 
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENT_CHANNEL).setStreamHandler(
             object : EventChannel.StreamHandler {
@@ -223,6 +242,26 @@ class MainActivity : FlutterActivity() {
                             } else {
                                 result.success(service.getCurrentPackage())
                             }
+                        }
+
+                        "readNotifications" -> {
+                            val sb = StringBuilder()
+                            synchronized(AgentAccessibilityService.recentNotifications) {
+                                if (AgentAccessibilityService.recentNotifications.isEmpty()) {
+                                    result.success("")
+                                    return@setMethodCallHandler
+                                }
+                                for (entry in AgentAccessibilityService.recentNotifications) {
+                                    val ago = (System.currentTimeMillis() - entry.timestamp) / 1000
+                                    val timeStr = when {
+                                        ago < 60 -> "${ago}s ago"
+                                        ago < 3600 -> "${ago / 60}m ago"
+                                        else -> "${ago / 3600}h ago"
+                                    }
+                                    sb.appendLine("[${entry.packageName.substringAfterLast('.')}] $timeStr: ${entry.text}")
+                                }
+                            }
+                            result.success(sb.toString().trim())
                         }
 
                         else -> result.notImplemented()

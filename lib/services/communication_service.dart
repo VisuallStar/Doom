@@ -91,4 +91,34 @@ class CommunicationService {
       return 'Error sending email: $e';
     }
   }
+
+  /// Make a WhatsApp voice call to a contact
+  Future<String> makeWhatsAppCall({String? contactName, String? phoneNumber}) async {
+    String? number = phoneNumber;
+
+    if (contactName != null && number == null) {
+      number = await _contactsService.getPhoneNumber(contactName);
+      if (number == null) {
+        return 'Could not find contact "$contactName". Try searching contacts first.';
+      }
+    }
+
+    if (number == null || number.isEmpty) {
+      return 'No phone number provided.';
+    }
+
+    // Remove non-digit characters except +
+    final cleanNumber = number.replaceAll(RegExp(r'[^\d+]'), '');
+
+    try {
+      final uri = Uri.parse('https://wa.me/$cleanNumber');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return 'Opening WhatsApp for $cleanNumber${contactName != null ? ' ($contactName)' : ''}. Please tap the call button in WhatsApp.';
+      }
+      return 'WhatsApp is not installed or cannot be opened.';
+    } catch (e) {
+      return 'Error opening WhatsApp: $e';
+    }
+  }
 }
