@@ -135,6 +135,26 @@ class ActionHandler {
           result = await _screenAutomation.readNotifications();
           break;
 
+        case 'take_screenshot':
+          result = await _systemControl.takeScreenshot();
+          break;
+
+        case 'screen_time':
+          result = await _systemControl.getScreenTime();
+          break;
+
+        case 'youtube_search':
+          result = await _systemControl.youtubeSearch(
+            action.params['query'] as String? ?? '',
+          );
+          break;
+
+        case 'youtube_play':
+          result = await _systemControl.youtubePlay(
+            action.params['query'] as String? ?? '',
+          );
+          break;
+
         // ─── Screen Automation Actions ────────────────────────
 
         case 'read_screen':

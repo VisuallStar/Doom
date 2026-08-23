@@ -17,7 +17,7 @@ jobs:
   build-apk:
     name: Build APK
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
@@ -40,13 +40,13 @@ jobs:
 
       - name: Build universal APK
         run: |
-          flutter build apk --release
+          flutter build apk --release --no-tree-shake-icons
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk dist/PrivateAgent-universal.apk
 
       - name: Build split APKs (per ABI)
         run: |
-          flutter build apk --release --split-per-abi
+          flutter build apk --release --split-per-abi --no-tree-shake-icons
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist/PrivateAgent-arm64.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk dist/PrivateAgent-armv7.apk
           cp build/app/outputs/flutter-apk/app-x86_64-release.apk dist/PrivateAgent-x86_64.apk
@@ -64,4 +64,4 @@ jobs:
         with:
           name: PrivateAgent-APKs-${{ github.sha }}
           path: dist/*
-          retention-days: 30
+          retention-days: 90

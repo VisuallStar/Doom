@@ -87,6 +87,14 @@ Rules:
 - If you need to open an app (like Wikipedia, Spotify, etc.) and you cannot find it after a couple of scrolls, ASSUME it is not installed. Immediately open Chrome or Google to search for the info on the web instead.
 - If stuck after 3 attempts, set is_complete=true and explain in reasoning.
 - Keep reasoning very brief (1 sentence)
+
+Samsung OneUI hints (if the phone is Samsung):
+- Samsung Settings uses "Connections" instead of "Network & internet"
+- Samsung uses "Sounds and vibration" instead of "Sound & vibration"
+- Samsung uses "Lock screen" instead of "Security"
+- Samsung has "Connections > Wi-Fi" for WiFi settings
+- Samsung has "Connections > Bluetooth" for Bluetooth
+- If a menu item text doesn't match, try scrolling down or look for similar alternatives
 ''';
 
   /// Extract JSON safely even if wrapped in markdown or conversational text
@@ -811,30 +819,38 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
   List<ActionStep>? _getNavigationShortcut(String goal) {
     final lower = goal.toLowerCase();
 
+    // --- Samsung OneUI + Stock Android compatible Settings shortcuts ---
     if (lower.contains('dark mode') || lower.contains('dark theme')) {
       return [
         ActionStep(action: 'open_app', params: {'app_name': 'Settings'}),
+        // Samsung: Display; Stock Android: Display
         ActionStep(action: 'click_text', params: {'text': 'Display'}),
       ];
     }
     if (lower.contains('wifi') || lower.contains('wi-fi')) {
       return [
         ActionStep(action: 'open_app', params: {'app_name': 'Settings'}),
-        ActionStep(
-          action: 'click_text',
-          params: {'text': 'Network & internet'},
-        ),
+        // Try Samsung first ('Connections'), falls back to stock Android in AI loop
+        ActionStep(action: 'click_text', params: {'text': 'Connections'}),
       ];
     }
     if (lower.contains('bluetooth')) {
       return [
         ActionStep(action: 'open_app', params: {'app_name': 'Settings'}),
-        ActionStep(action: 'click_text', params: {'text': 'Connected devices'}),
+        // Samsung: Connections; Stock: Connected devices
+        ActionStep(action: 'click_text', params: {'text': 'Connections'}),
+      ];
+    }
+    if (lower.contains('sound') || lower.contains('ringtone')) {
+      return [
+        ActionStep(action: 'open_app', params: {'app_name': 'Settings'}),
+        // Samsung: Sounds and vibration; Stock: Sound & vibration
+        ActionStep(action: 'click_text', params: {'text': 'Sound'}),
       ];
     }
 
     final appPatterns = <String, List<String>>{
-      'Settings': ['settings', 'brightness', 'display', 'notification'],
+      'Settings': ['settings', 'brightness', 'display', 'notification settings'],
       'Play Store': [
         'play store',
         'playstore',
@@ -853,6 +869,8 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
       'Maps': ['maps', 'navigate to', 'directions'],
       'Clock': ['alarm', 'timer', 'stopwatch'],
       'Calculator': ['calculator', 'calculate', 'calc'],
+      'Samsung Internet': ['samsung internet', 'samsung browser'],
+      'Samsung Notes': ['samsung notes', 'notes'],
     };
 
     for (final entry in appPatterns.entries) {

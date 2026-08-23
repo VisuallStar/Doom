@@ -25,20 +25,69 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        // Torch control channel
+        // Torch and system control channel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.privateagent/torch").setMethodCallHandler { call, result ->
-            if (call.method == "toggleTorch") {
-                val enabled = call.argument<Boolean>("enabled") ?: false
-                try {
-                    val cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
-                    val cameraId = cameraManager.cameraIdList[0]
-                    cameraManager.setTorchMode(cameraId, enabled)
-                    result.success(true)
-                } catch (e: Exception) {
-                    result.success(false)
+            when (call.method) {
+                "toggleTorch" -> {
+                    val enabled = call.argument<Boolean>("enabled") ?: false
+                    try {
+                        val cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+                        val cameraId = cameraManager.cameraIdList[0]
+                        cameraManager.setTorchMode(cameraId, enabled)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
                 }
-            } else {
-                result.notImplemented()
+                "getScreenTime" -> {
+                    try {
+                        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as android.app.usage.UsageStatsManager
+                        val cal = java.util.Calendar.getInstance()
+                        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                        cal.set(java.util.Calendar.MINUTE, 0)
+                        cal.set(java.util.Calendar.SECOND, 0)
+                        val startTime = cal.timeInMillis
+                        val endTime = System.currentTimeMillis()
+                        val stats = usageStatsManager.queryUsageStats(
+                            android.app.usage.UsageStatsManager.INTERVAL_DAILY,
+                            startTime, endTime
+                        )
+                        if (stats.isNullOrEmpty()) {
+                            result.success("No usage data available. Please grant Usage Access permission in Settings > Apps > Special access > Usage data access.")
+                        } else {
+                            val sb = StringBuilder("Today's Screen Time:\n")
+                            var totalMs = 0L
+                            val sorted = stats
+                                .filter { it.totalTimeInForeground > 60000 } // > 1 min
+                                .sortedByDescending { it.totalTimeInForeground }
+                                .take(10)
+                            for (stat in sorted) {
+                                val mins = stat.totalTimeInForeground / 60000
+                                val hrs = mins / 60
+                                val remMins = mins % 60
+                                val appName = try {
+                                    packageManager.getApplicationLabel(
+                                        packageManager.getApplicationInfo(stat.packageName, 0)
+                                    ).toString()
+                                } catch (_: Exception) { stat.packageName.substringAfterLast('.') }
+                                totalMs += stat.totalTimeInForeground
+                                if (hrs > 0) {
+                                    sb.appendLine("  $appName: ${hrs}h ${remMins}m")
+                                } else {
+                                    sb.appendLine("  $appName: ${remMins}m")
+                                }
+                            }
+                            val totalMins = totalMs / 60000
+                            val totalHrs = totalMins / 60
+                            val totalRemMins = totalMins % 60
+                            sb.appendLine("\nTotal: ${totalHrs}h ${totalRemMins}m")
+                            result.success(sb.toString().trim())
+                        }
+                    } catch (e: Exception) {
+                        result.success("Could not get screen time: ${e.message}")
+                    }
+                }
+                else -> result.notImplemented()
             }
         }
 
@@ -262,6 +311,36 @@ class MainActivity : FlutterActivity() {
                                 }
                             }
                             result.success(sb.toString().trim())
+                        }
+
+                        "takeScreenshot" -> {
+                            val service = AgentAccessibilityService.instance
+                            if (service == null) {
+                                result.success("Accessibility service is not running.")
+                            } else {
+                                try {
+                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                        service.takeScreenshot(
+                                            android.view.Display.DEFAULT_DISPLAY,
+                                            context.mainExecutor,
+                                            object : android.accessibilityservice.AccessibilityService.TakeScreenshotCallback {
+                                                override fun onSuccess(screenshot: android.accessibilityservice.AccessibilityService.ScreenshotResult) {
+                                                    result.success("Screenshot captured successfully.")
+                                                }
+                                                override fun onFailure(errorCode: Int) {
+                                                    result.success("Screenshot failed with error code: $errorCode")
+                                                }
+                                            }
+                                        )
+                                    } else {
+                                        // Fallback for older Android versions - perform global action
+                                        service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_TAKE_SCREENSHOT)
+                                        result.success("Screenshot triggered.")
+                                    }
+                                } catch (e: Exception) {
+                                    result.success("Error taking screenshot: ${e.message}")
+                                }
+                            }
                         }
 
                         else -> result.notImplemented()
