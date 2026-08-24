@@ -111,14 +111,19 @@ class CommunicationService {
     final cleanNumber = number.replaceAll(RegExp(r'[^\d+]'), '');
 
     try {
-      final uri = Uri.parse('https://wa.me/$cleanNumber');
-      if (await canLaunchUrl(uri)) {
+      // Try whatsapp:// scheme first (works directly on most devices)
+      final waUri = Uri.parse('whatsapp://send?phone=$cleanNumber');
+      await launchUrl(waUri, mode: LaunchMode.externalApplication);
+      return 'Opened WhatsApp chat with $cleanNumber${contactName != null ? ' ($contactName)' : ''}. Tap the call button to start the call.';
+    } catch (_) {
+      try {
+        // Fallback: use wa.me URL
+        final uri = Uri.parse('https://wa.me/$cleanNumber');
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return 'Opening WhatsApp for $cleanNumber${contactName != null ? ' ($contactName)' : ''}. Please tap the call button in WhatsApp.';
+        return 'Opened WhatsApp for $cleanNumber${contactName != null ? ' ($contactName)' : ''}. Tap the call button to start the call.';
+      } catch (e) {
+        return 'WhatsApp is not installed or cannot be opened: $e';
       }
-      return 'WhatsApp is not installed or cannot be opened.';
-    } catch (e) {
-      return 'Error opening WhatsApp: $e';
     }
   }
 }

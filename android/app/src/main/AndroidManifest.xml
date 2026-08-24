@@ -21,7 +21,7 @@
     <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
 
-    <!-- For speech recognition -->
+    <!-- For speech recognition and app launching -->
     <queries>
         <intent>
             <action android:name="android.speech.RecognitionService" />
@@ -45,10 +45,35 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="mailto" />
         </intent>
+        <!-- YouTube -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" android:host="www.youtube.com" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" android:host="youtube.com" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="vnd.youtube" />
+        </intent>
+        <!-- WhatsApp -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" android:host="wa.me" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="whatsapp" />
+        </intent>
+        <!-- General https for any URL -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <package android:name="com.google.android.youtube" />
+        <package android:name="com.whatsapp" />
     </queries>
 
     <application
@@ -104,6 +129,17 @@
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!-- Notification Listener Service for reading notifications -->
+        <service
+            android:name=".AgentNotificationListener"
+            android:exported="true"
+            android:label="PrivateAgent Notification Access"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
         </service>
 
         <meta-data

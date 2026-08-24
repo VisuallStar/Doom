@@ -124,40 +124,43 @@ class SystemControlService {
     }
   }
 
-  /// Open YouTube and search for a query directly using deep link (no clicking needed)
+  /// Open YouTube and search for a query using Android Intent (no clicking needed)
   Future<String> youtubeSearch(String query) async {
     try {
       final encodedQuery = Uri.encodeComponent(query);
-      final uri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return 'Opened YouTube search for "$query".';
-      }
-      // Fallback: try vnd.youtube intent
-      final ytUri = Uri.parse('vnd.youtube://results?search_query=$encodedQuery');
-      if (await canLaunchUrl(ytUri)) {
-        await launchUrl(ytUri, mode: LaunchMode.externalApplication);
-        return 'Opened YouTube search for "$query".';
-      }
-      return 'Could not open YouTube. Is it installed?';
+      // Try YouTube app directly first
+      final ytUri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
+      await launchUrl(ytUri, mode: LaunchMode.externalApplication);
+      return 'Opened YouTube search for "$query".';
     } catch (e) {
-      return 'Error searching YouTube: $e';
+      // Fallback: try generic URL launch
+      try {
+        final encodedQuery = Uri.encodeComponent(query);
+        final uri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+        return 'Opened YouTube search for "$query" in browser.';
+      } catch (e2) {
+        return 'Error searching YouTube: $e2';
+      }
     }
   }
 
-  /// Play a specific YouTube video by search query (opens first result)
+  /// Play a YouTube video by search query
   Future<String> youtubePlay(String query) async {
     try {
       final encodedQuery = Uri.encodeComponent(query);
-      // Use YouTube search URL which will show results ready to play
-      final uri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return 'Opened YouTube with "$query". Tap the first video to play it.';
-      }
-      return 'Could not open YouTube.';
+      final ytUri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
+      await launchUrl(ytUri, mode: LaunchMode.externalApplication);
+      return 'Opened YouTube with "$query". The first result is ready to play.';
     } catch (e) {
-      return 'Error playing YouTube video: $e';
+      try {
+        final encodedQuery = Uri.encodeComponent(query);
+        final uri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+        return 'Opened YouTube with "$query" in browser.';
+      } catch (e2) {
+        return 'Error playing YouTube video: $e2';
+      }
     }
   }
 }

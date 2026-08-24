@@ -317,23 +317,30 @@ class MainActivity : FlutterActivity() {
                         }
 
                         "readNotifications" -> {
-                            val sb = StringBuilder()
-                            synchronized(AgentAccessibilityService.recentNotifications) {
-                                if (AgentAccessibilityService.recentNotifications.isEmpty()) {
-                                    result.success("")
-                                    return@setMethodCallHandler
-                                }
-                                for (entry in AgentAccessibilityService.recentNotifications) {
-                                    val ago = (System.currentTimeMillis() - entry.timestamp) / 1000
-                                    val timeStr = when {
-                                        ago < 60 -> "${ago}s ago"
-                                        ago < 3600 -> "${ago / 60}m ago"
-                                        else -> "${ago / 3600}h ago"
+                            // Try NotificationListenerService first (modern, reliable)
+                            val listenerResult = AgentNotificationListener.getFormattedNotifications()
+                            if (listenerResult.isNotEmpty()) {
+                                result.success(listenerResult)
+                            } else {
+                                // Fall back to accessibility service captured notifications
+                                val sb = StringBuilder()
+                                synchronized(AgentAccessibilityService.recentNotifications) {
+                                    if (AgentAccessibilityService.recentNotifications.isEmpty()) {
+                                        result.success("No notifications found. Please enable 'Notification Access' for PrivateAgent in Settings > Apps > Special access > Notification access.")
+                                        return@setMethodCallHandler
                                     }
-                                    sb.appendLine("[${entry.packageName.substringAfterLast('.')}] $timeStr: ${entry.text}")
+                                    for (entry in AgentAccessibilityService.recentNotifications) {
+                                        val ago = (System.currentTimeMillis() - entry.timestamp) / 1000
+                                        val timeStr = when {
+                                            ago < 60 -> "${ago}s ago"
+                                            ago < 3600 -> "${ago / 60}m ago"
+                                            else -> "${ago / 3600}h ago"
+                                        }
+                                        sb.appendLine("[${entry.packageName.substringAfterLast('.')}] $timeStr: ${entry.text}")
+                                    }
                                 }
+                                result.success(sb.toString().trim())
                             }
-                            result.success(sb.toString().trim())
                         }
 
                         "takeScreenshot" -> {
