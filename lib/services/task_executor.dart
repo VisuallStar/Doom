@@ -65,36 +65,47 @@ Respond with ONLY a JSON object (no markdown, no code fences):
 Available actions:
 - click_text: {"text": "exact text to click"} - Click an element by its visible text
 - click_at: {"x": 540, "y": 960} - Click at screen coordinates (use bounds from screen dump)
-- type_text: {"text": "hello", "field_hint": "optional hint"} - Type into the focused/first edit field
+- type_text: {"text": "hello"} - Type into the currently focused edit field (must click the field FIRST in a prior step)
 - press_enter: {} - Press the Enter/Search key on the keyboard to submit a search/form
 - scroll: {"direction": "down"} - Scroll down/up on the current view
-- swipe: {"startX": 540, "startY": 2000, "endX": 540, "endY": 500} - Swipe from start to end coordinates (e.g. open app drawer, navigate carousels)
+- swipe: {"startX": 540, "startY": 2000, "endX": 540, "endY": 500} - Swipe from start to end coordinates
 - press_back: {} - Press the back button
 - press_home: {} - Press the home button
-- open_app: {"app_name": "WhatsApp"} - Open an app
+- open_app: {"app_name": "WhatsApp"} - Open an app by name
 - wait: {} - Wait a moment for content to load
 - done: {} - Task is complete
 
 Rules:
 - You will receive a TEXT DUMP of the accessibility tree containing exact text strings and center coordinates.
 - ALWAYS use the text dump to decide your next action.
-- If you need to click something, prefer using `click_text`. If the element does not have text, use `click_at` with the coordinates provided in the text dump.
-- When typing in a search box, you MUST click it first, wait a step, and THEN type.
-- After typing a search query, use `press_enter` once. If the screen does not change, click the exact visible suggestion text. Do not repeat the same submit action more than twice.
-- Never scroll or swipe more than three times in a row. After three scrolls, choose the best visible result or take a different action instead of continuing to browse indefinitely.
+- ALWAYS start by opening the relevant app using open_app if the task mentions an app.
+- If you need to click something, prefer using click_text. If the element has no text, use click_at with coordinates.
+- TYPING: To type in any field (search box, notes, text input), you MUST:
+  1. First click the text field (click_text or click_at) in one step
+  2. Then type_text in the NEXT step
+  Never type without clicking the field first!
+- After typing a search query, use press_enter once. If the screen does not change, click the visible suggestion text.
+- Do not repeat the same failed action more than twice. Try a different approach.
+- Never scroll more than three times in a row. After three scrolls, choose the best visible result.
 - Set is_complete=true ONLY when the task is fully done.
-- If you need to find something by scrolling, scroll and then check the screen again.
-- If you need to open an app (like Wikipedia, Spotify, etc.) and you cannot find it after a couple of scrolls, ASSUME it is not installed. Immediately open Chrome or Google to search for the info on the web instead.
 - If stuck after 3 attempts, set is_complete=true and explain in reasoning.
 - Keep reasoning very brief (1 sentence)
 
-Samsung OneUI hints (if the phone is Samsung):
-- Samsung Settings uses "Connections" instead of "Network & internet"
-- Samsung uses "Sounds and vibration" instead of "Sound & vibration"
+For YouTube tasks:
+- To play a video, click on the video title or thumbnail text from the search results
+- After clicking a video, it will auto-play. Then set is_complete=true
+
+For note/writing tasks:
+- Open the notes app (Samsung Notes, Notes, Google Keep, etc.)
+- Click the "+" or "Create" button to start a new note
+- Click the text area/body to focus it
+- Then use type_text to write the content
+- Samsung Notes: Look for floating "+" button or "All notes" then "+"
+
+Samsung OneUI hints:
+- Samsung Settings: "Connections" (not "Network & internet"), "Sounds and vibration" (not "Sound")
 - Samsung uses "Lock screen" instead of "Security"
-- Samsung has "Connections > Wi-Fi" for WiFi settings
-- Samsung has "Connections > Bluetooth" for Bluetooth
-- If a menu item text doesn't match, try scrolling down or look for similar alternatives
+- If a menu item text doesn't match, try scrolling down or look for similar text
 ''';
 
   /// Extract JSON safely even if wrapped in markdown or conversational text

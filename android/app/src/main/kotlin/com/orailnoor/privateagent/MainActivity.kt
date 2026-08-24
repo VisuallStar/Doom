@@ -87,6 +87,29 @@ class MainActivity : FlutterActivity() {
                         result.success("Could not get screen time: ${e.message}")
                     }
                 }
+                "setScreenTimeout" -> {
+                    val seconds = call.argument<Int>("seconds") ?: 30
+                    try {
+                        val timeoutMs = seconds * 1000
+                        if (android.provider.Settings.System.canWrite(this)) {
+                            android.provider.Settings.System.putInt(
+                                contentResolver,
+                                android.provider.Settings.System.SCREEN_OFF_TIMEOUT,
+                                timeoutMs
+                            )
+                            result.success(true)
+                        } else {
+                            // Request WRITE_SETTINGS permission
+                            val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS)
+                            intent.data = android.net.Uri.parse("package:$packageName")
+                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                            result.success(false)
+                        }
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }

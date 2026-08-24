@@ -41,6 +41,21 @@ class AgentAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
+
+        // Always capture notifications regardless of whether a task is running
+        if (event.eventType == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
+            val text = event.text?.joinToString(" ") ?: ""
+            val pkg = event.packageName?.toString() ?: "unknown"
+            if (text.isNotBlank()) {
+                synchronized(recentNotifications) {
+                    recentNotifications.add(0, NotificationEntry(pkg, text, System.currentTimeMillis()))
+                    if (recentNotifications.size > MAX_NOTIFICATIONS) {
+                        recentNotifications.removeAt(recentNotifications.size - 1)
+                    }
+                }
+            }
+        }
+
         val listener = eventListener ?: return
         
         // Filter out events from our own app so we don't record the Stop Overlay button clicks
@@ -74,18 +89,6 @@ class AgentAccessibilityService : AccessibilityService() {
             AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
                 val map = mapOf("type" to "scroll")
                 listener(map)
-            }
-            AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED -> {
-                val text = event.text?.joinToString(" ") ?: ""
-                val pkg = event.packageName?.toString() ?: "unknown"
-                if (text.isNotBlank()) {
-                    synchronized(recentNotifications) {
-                        recentNotifications.add(0, NotificationEntry(pkg, text, System.currentTimeMillis()))
-                        if (recentNotifications.size > MAX_NOTIFICATIONS) {
-                            recentNotifications.removeAt(recentNotifications.size - 1)
-                        }
-                    }
-                }
             }
         }
     }

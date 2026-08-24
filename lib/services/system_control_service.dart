@@ -52,6 +52,24 @@ class SystemControlService {
     }
   }
 
+  /// Set screen timeout duration in seconds
+  /// Common values: 15, 30, 60, 120, 300, 600 (seconds)
+  Future<String> setScreenTimeout(int seconds) async {
+    try {
+      final result = await _torchChannel.invokeMethod<bool>(
+        'setScreenTimeout',
+        {'seconds': seconds},
+      );
+      if (result == true) {
+        final display = seconds >= 60 ? '${seconds ~/ 60} minute(s)' : '$seconds seconds';
+        return 'Screen timeout set to $display.';
+      }
+      return 'Could not set screen timeout. You may need to grant WRITE_SETTINGS permission.';
+    } catch (e) {
+      return 'Error setting screen timeout: $e';
+    }
+  }
+
   /// Toggle the device flashlight/torch
   static const _torchChannel = MethodChannel('com.privateagent/torch');
   

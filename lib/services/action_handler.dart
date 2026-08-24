@@ -143,6 +143,12 @@ class ActionHandler {
           result = await _systemControl.getScreenTime();
           break;
 
+        case 'set_screen_timeout':
+          result = await _systemControl.setScreenTimeout(
+            (action.params['seconds'] as num?)?.toInt() ?? 30,
+          );
+          break;
+
         case 'youtube_search':
           result = await _systemControl.youtubeSearch(
             action.params['query'] as String? ?? '',
