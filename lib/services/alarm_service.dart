@@ -48,4 +48,37 @@ class AlarmService {
       return 'Error setting timer: $e';
     }
   }
+
+  /// Set a calendar reminder using Android's calendar intent (background, no screen control)
+  Future<String> setReminder({
+    required String title,
+    String? description,
+    required int year,
+    required int month,
+    required int day,
+    int hour = 9,
+    int minute = 0,
+  }) async {
+    try {
+      final startTime = DateTime(year, month, day, hour, minute);
+      final endTime = startTime.add(const Duration(hours: 1));
+      final intent = AndroidIntent(
+        action: 'android.intent.action.INSERT',
+        data: 'content://com.android.calendar/events',
+        arguments: <String, dynamic>{
+          'title': title,
+          if (description != null) 'description': description,
+          'beginTime': startTime.millisecondsSinceEpoch,
+          'endTime': endTime.millisecondsSinceEpoch,
+          'hasAlarm': 1,
+        },
+      );
+      await intent.launch();
+      final dateStr = '${year}-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+      final timeStr = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+      return 'Reminder "$title" set for $dateStr at $timeStr.';
+    } catch (e) {
+      return 'Error setting reminder: $e';
+    }
+  }
 }

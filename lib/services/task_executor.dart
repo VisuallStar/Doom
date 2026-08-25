@@ -201,11 +201,11 @@ Samsung OneUI hints:
           final appName = step.params['app_name'] as String? ?? '';
           final res = await _appLauncher.openApp(appName);
           success = res.startsWith('Opened');
-          await Future.delayed(const Duration(milliseconds: 3000));
+          await Future.delayed(const Duration(milliseconds: 1500));
         } else if (step.action == 'click_text') {
           final text = step.params['text'] as String? ?? '';
           success = await _screenService.clickByText(text);
-          await Future.delayed(const Duration(milliseconds: 1500));
+          await Future.delayed(const Duration(milliseconds: 800));
         }
 
         if (success) {
@@ -247,16 +247,15 @@ Samsung OneUI hints:
       }
 
       // Adaptive delay: give Android apps time to transition screens, load data, or open keyboards
-      int delay = 800; // Default 0.8s delay for most actions
+      int delay = 500; // Default 0.5s delay for most actions
       if (lastAction == 'open_app') {
-        delay = 2000; // Apps need ~2 seconds to fully cold-start and render
+        delay = 1500; // Apps need ~1.5 seconds to cold-start and render
       } else if (lastAction == 'type_text') {
-        delay =
-            1200; // Typing involves keyboards and often triggers heavy network requests (search)
+        delay = 800; // Typing involves keyboards and often triggers network requests
       } else if (lastAction == 'click_text' || lastAction == 'click_at') {
-        delay = 1000; // Clicking usually triggers a screen transition
+        delay = 600; // Clicking usually triggers a screen transition
       } else if (lastAction == 'scroll') {
-        delay = 600; // Scrolling is relatively fast
+        delay = 400; // Scrolling is relatively fast
       }
       await Future.delayed(Duration(milliseconds: delay));
 
@@ -729,15 +728,15 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
       _report('Replaying step ${i + 1}/${skill.steps.length}: ${step.action}');
 
       // Delay before executing each step
-      int delay = 1200;
+      int delay = 800;
       if (step.action == 'open_app')
-        delay = 3000;
-      else if (step.action == 'type_text')
-        delay = 2000;
-      else if (step.action == 'click_text' || step.action == 'click_at')
         delay = 1500;
-      else if (step.action == 'scroll')
+      else if (step.action == 'type_text')
         delay = 1000;
+      else if (step.action == 'click_text' || step.action == 'click_at')
+        delay = 700;
+      else if (step.action == 'scroll')
+        delay = 500;
 
       await Future.delayed(Duration(milliseconds: delay));
 

@@ -4,6 +4,7 @@ import 'app_launcher_service.dart';
 import 'contacts_service.dart';
 import 'communication_service.dart';
 import 'alarm_service.dart';
+import 'notes_service.dart';
 import 'system_control_service.dart';
 import 'shizuku_service.dart';
 import 'screen_automation_service.dart';
@@ -15,6 +16,7 @@ class ActionHandler {
   final ContactsService _contacts = ContactsService();
   final CommunicationService _communication = CommunicationService();
   final AlarmService _alarm = AlarmService();
+  final NotesService _notes = NotesService();
   final SystemControlService _systemControl = SystemControlService();
   final ShizukuService _shizuku = ShizukuService();
   final ScreenAutomationService _screenAutomation = ScreenAutomationService();
@@ -147,6 +149,52 @@ class ActionHandler {
           result = await _systemControl.setScreenTimeout(
             (action.params['seconds'] as num?)?.toInt() ?? 30,
           );
+          break;
+
+        case 'set_reminder':
+          result = await _alarm.setReminder(
+            title: action.params['title'] as String? ?? 'Reminder',
+            description: action.params['description'] as String?,
+            year: (action.params['year'] as num?)?.toInt() ?? DateTime.now().year,
+            month: (action.params['month'] as num?)?.toInt() ?? DateTime.now().month,
+            day: (action.params['day'] as num?)?.toInt() ?? DateTime.now().day,
+            hour: (action.params['hour'] as num?)?.toInt() ?? 9,
+            minute: (action.params['minute'] as num?)?.toInt() ?? 0,
+          );
+          break;
+
+        case 'create_note':
+          result = await _notes.createNote(
+            title: action.params['title'] as String? ?? 'Untitled',
+            content: action.params['content'] as String? ?? '',
+          );
+          break;
+
+        case 'append_note':
+          result = await _notes.appendNote(
+            title: action.params['title'] as String? ?? 'Untitled',
+            content: action.params['content'] as String? ?? '',
+          );
+          break;
+
+        case 'list_notes':
+          result = await _notes.listNotes();
+          break;
+
+        case 'read_note':
+          result = await _notes.readNote(
+            title: action.params['title'] as String? ?? '',
+          );
+          break;
+
+        case 'delete_note':
+          result = await _notes.deleteNote(
+            title: action.params['title'] as String? ?? '',
+          );
+          break;
+
+        case 'youtube_fullscreen':
+          result = await _systemControl.youtubeFullscreen();
           break;
 
         case 'youtube_search':

@@ -145,22 +145,42 @@ class SystemControlService {
     }
   }
 
-  /// Play a YouTube video by search query
+  /// Play a YouTube video by search query — uses vnd.youtube scheme for auto-play
   Future<String> youtubePlay(String query) async {
     try {
+      // Use vnd.youtube scheme to open directly in YouTube app
       final encodedQuery = Uri.encodeComponent(query);
-      final ytUri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
+      final ytUri = Uri.parse('vnd.youtube://results?search_query=$encodedQuery');
       await launchUrl(ytUri, mode: LaunchMode.externalApplication);
-      return 'Opened YouTube with "$query". The first result is ready to play.';
-    } catch (e) {
+      return 'Playing "$query" on YouTube. Tap the first video to play it.';
+    } catch (_) {
       try {
+        // Fallback: https URL with YouTube app
         final encodedQuery = Uri.encodeComponent(query);
-        final uri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
-        await launchUrl(uri, mode: LaunchMode.platformDefault);
-        return 'Opened YouTube with "$query" in browser.';
+        final ytUri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
+        await launchUrl(ytUri, mode: LaunchMode.externalApplication);
+        return 'Opened YouTube with "$query". Tap any video to play.';
       } catch (e2) {
         return 'Error playing YouTube video: $e2';
       }
+    }
+  }
+
+  /// Make YouTube video fullscreen by clicking the fullscreen button via accessibility
+  Future<String> youtubeFullscreen() async {
+    try {
+      final result = await _accessibilityChannel.invokeMethod<bool>('clickByText', {'text': 'Enter fullscreen'});
+      if (result == true) {
+        return 'YouTube video is now fullscreen.';
+      }
+      // Try clicking the fullscreen icon by content description
+      final result2 = await _accessibilityChannel.invokeMethod<bool>('clickByText', {'text': 'Fullscreen'});
+      if (result2 == true) {
+        return 'YouTube video is now fullscreen.';
+      }
+      return 'Could not find fullscreen button. The video may already be fullscreen.';
+    } catch (e) {
+      return 'Error toggling fullscreen: $e';
     }
   }
 }

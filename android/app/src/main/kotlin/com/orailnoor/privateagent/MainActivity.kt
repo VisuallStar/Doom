@@ -132,6 +132,40 @@ class MainActivity : FlutterActivity() {
             }
         )
 
+        // SMS direct send channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.privateagent/sms").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "sendSms" -> {
+                    val phoneNumber = call.argument<String>("phoneNumber") ?: ""
+                    val message = call.argument<String>("message") ?: ""
+                    if (phoneNumber.isEmpty() || message.isEmpty()) {
+                        result.success(false)
+                    } else {
+                        try {
+                            val smsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                                getSystemService(android.telephony.SmsManager::class.java)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                android.telephony.SmsManager.getDefault()
+                            }
+                            // Handle long messages by splitting
+                            val parts = smsManager.divideMessage(message)
+                            if (parts.size == 1) {
+                                smsManager.sendTextMessage(phoneNumber, null, message, null, null)
+                            } else {
+                                smsManager.sendMultipartTextMessage(phoneNumber, null, parts, null, null)
+                            }
+                            result.success(true)
+                        } catch (e: Exception) {
+                            android.util.Log.e("PrivateAgent", "SMS send error: ${e.message}")
+                            result.success(false)
+                        }
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+
         registerAccessibilityChannel(flutterEngine, this)
     }
 

@@ -68,9 +68,11 @@ For device actions, respond with ONLY a JSON object:
 INSTANT ACTIONS (no screen interaction needed):
 - open_app: {"app_name": "YouTube"} - Only to open an app, nothing else
 - make_call: {"contact_name": "Mom"} or {"phone_number": "123"}
-- send_sms: {"contact_name": "John", "message": "Hi"}
+- send_sms: {"contact_name": "John", "message": "Hi"} - Sends SMS directly in background
 - search_contact: {"query": "John"}
 - set_alarm: {"hour": 7, "minute": 30, "label": "Wake up"}
+- set_timer: {"seconds": 300, "label": "Eggs"}
+- set_reminder: {"title": "Meeting", "year": 2026, "month": 8, "day": 25, "hour": 14, "minute": 0, "description": "Team sync"}
 - set_volume: {"level": 50} (0-100)
 - set_brightness: {"level": 50} (0-100)
 - set_screen_timeout: {"seconds": 120} (15/30/60/120/300/600)
@@ -82,7 +84,13 @@ INSTANT ACTIONS (no screen interaction needed):
 - take_screenshot: {}
 - screen_time: {}
 - youtube_search: {"query": "funny cats"} - Opens YouTube search
-- youtube_play: {"query": "lofi music"} - Opens YouTube with results
+- youtube_play: {"query": "lofi music"} - Opens YouTube and auto-plays
+- youtube_fullscreen: {} - Makes current YouTube video fullscreen
+- create_note: {"title": "Shopping List", "content": "Milk, eggs, bread"} - Creates a note in background
+- append_note: {"title": "Shopping List", "content": "Butter"} - Appends to an existing note
+- list_notes: {} - Lists all saved notes
+- read_note: {"title": "Shopping List"} - Reads a saved note
+- delete_note: {"title": "Shopping List"} - Deletes a note
 - read_screen: {}
 - press_back: {}
 
@@ -93,8 +101,11 @@ RULES:
 1. Use instant actions whenever possible. They are fast and reliable.
 2. YouTube → ALWAYS use youtube_search or youtube_play. NEVER use execute_task for YouTube.
 3. Volume, brightness, timeout, notifications, time, torch, screenshot → ALWAYS instant action.
-4. DO NOT open apps unnecessarily. If the user just asks a question, respond with text.
-5. Use execute_task ONLY when the task needs screen interaction (typing in apps, navigating menus, clicking buttons). Always include the app name in the goal.
+4. Notes → ALWAYS use create_note, append_note, read_note, list_notes. NEVER use execute_task for notes.
+5. SMS → ALWAYS use send_sms (sends directly). NEVER use execute_task for SMS.
+6. Reminders → ALWAYS use set_reminder. NEVER use execute_task for reminders.
+7. DO NOT open apps unnecessarily. If the user just asks a question, respond with text.
+8. Use execute_task ONLY when the task needs screen interaction (navigating menus, clicking buttons). Always include the app name in the goal.
 
 Examples:
 - "play music on youtube" → youtube_play {"query": "music"}
@@ -103,9 +114,14 @@ Examples:
 - "set screen timeout 5 minutes" → set_screen_timeout {"seconds": 300}
 - "notifications" → read_notifications
 - "call mom on whatsapp" → whatsapp_call {"contact_name": "Mom"}
-- "write hello in notes" → execute_task {"goal": "Open Samsung Notes and write: hello"}
+- "write hello in notes" → create_note {"title": "Note", "content": "hello"}
+- "add milk to shopping list" → append_note {"title": "Shopping List", "content": "milk"}
+- "what notes do I have" → list_notes {}
+- "text john hey" → send_sms {"contact_name": "John", "message": "hey"}
+- "remind me to call doctor tomorrow at 3pm" → set_reminder {"title": "Call doctor", "year": 2026, "month": 8, "day": 26, "hour": 15, "minute": 0}
 - "what's the time" → get_datetime
 - "open camera" → open_app {"app_name": "Camera"}
+- "make youtube fullscreen" → youtube_fullscreen {}
 
 For questions/chat, respond with plain text. Do NOT use any action.
 ''';

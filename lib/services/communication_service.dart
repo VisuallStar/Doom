@@ -1,8 +1,10 @@
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'contacts_service.dart';
 
 class CommunicationService {
   final ContactsService _contactsService = ContactsService();
+  static const _smsChannel = MethodChannel('com.privateagent/sms');
 
   /// Make a phone call. Can accept a name or number.
   Future<String> makeCall({String? contactName, String? phoneNumber}) async {
@@ -32,7 +34,8 @@ class CommunicationService {
     }
   }
 
-  /// Send an SMS. Can accept a name or number.
+  /// Send an SMS directly in the background using native SmsManager.
+  /// Falls back to opening the SMS app if native sending fails.
   Future<String> sendSms({
     String? contactName,
     String? phoneNumber,
@@ -51,6 +54,20 @@ class CommunicationService {
       return 'No phone number provided.';
     }
 
+    // Try sending directly via native SmsManager
+    try {
+      final result = await _smsChannel.invokeMethod<bool>('sendSms', {
+        'phoneNumber': number,
+        'message': message,
+      });
+      if (result == true) {
+        return 'SMS sent to $number${contactName != null ? ' ($contactName)' : ''}: "$message"';
+      }
+    } catch (_) {
+      // Fall through to URL launcher fallback
+    }
+
+    // Fallback: open SMS app
     try {
       final uri = Uri(
         scheme: 'sms',

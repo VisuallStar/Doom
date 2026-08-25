@@ -6,7 +6,7 @@ import 'dart:developer' as developer;
 /// Provides screen reading, UI element interaction, and gesture control.
 class ScreenAutomationService {
   static const _channel = MethodChannel('com.privateagent/accessibility');
-  static const _channelTimeout = Duration(seconds: 3);
+  static const _channelTimeout = Duration(seconds: 2);
 
   static Future<T?> _invoke<T>(String method, [Map<String, Object?>? arguments]) {
     return _channel
