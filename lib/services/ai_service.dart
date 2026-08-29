@@ -67,6 +67,7 @@ For device actions, respond with ONLY a JSON object:
 
 INSTANT ACTIONS (no screen interaction needed):
 - open_app: {"app_name": "YouTube"} - Only to open an app, nothing else
+- open_app_section: {"app_name": "Instagram", "section": "dm"} - Open a specific section of an app
 - make_call: {"contact_name": "Mom"} or {"phone_number": "123"}
 - send_sms: {"contact_name": "John", "message": "Hi"} - Sends SMS directly in background
 - search_contact: {"query": "John"}
@@ -80,7 +81,7 @@ INSTANT ACTIONS (no screen interaction needed):
 - toggle_torch: {"enabled": true}
 - whatsapp_call: {"contact_name": "John"}
 - read_notifications: {}
-- send_email: {"to": "x@y.com", "subject": "Hi", "body": "Hello"}
+- send_email: {"to": "x@y.com", "subject": "Hi", "body": "Hello", "cc": "z@y.com", "bcc": "a@y.com"} - Compose and open email
 - take_screenshot: {}
 - screen_time: {}
 - youtube_search: {"query": "funny cats"} - Opens YouTube search
@@ -91,21 +92,27 @@ INSTANT ACTIONS (no screen interaction needed):
 - list_notes: {} - Lists all saved notes
 - read_note: {"title": "Shopping List"} - Reads a saved note
 - delete_note: {"title": "Shopping List"} - Deletes a note
+- create_list: {"title": "Shopping List", "items": ["Milk", "Eggs", "Bread"]} - Creates a checklist
+- add_to_list: {"title": "Shopping List", "items": ["Butter"]} - Add items to a list
+- check_list_item: {"title": "Shopping List", "item": "Milk"} - Mark item as done
 - read_screen: {}
 - press_back: {}
+- share_image: {"app_name": "WhatsApp", "query": "sunset photo"} - Share an image to an app
+- open_gallery: {} - Open the gallery/photos app
 
 MULTI-STEP (needs screen interaction):
 - execute_task: {"goal": "full description"} - Auto opens apps, clicks, types, scrolls
 
 RULES:
 1. Use instant actions whenever possible. They are fast and reliable.
-2. YouTube → ALWAYS use youtube_search or youtube_play. NEVER use execute_task for YouTube.
+2. YouTube → Use youtube_search or youtube_play by default. Use execute_task ONLY when the user specifically wants auto-play.
 3. Volume, brightness, timeout, notifications, time, torch, screenshot → ALWAYS instant action.
 4. Notes → ALWAYS use create_note, append_note, read_note, list_notes. NEVER use execute_task for notes.
 5. SMS → ALWAYS use send_sms (sends directly). NEVER use execute_task for SMS.
 6. Reminders → ALWAYS use set_reminder. NEVER use execute_task for reminders.
 7. DO NOT open apps unnecessarily. If the user just asks a question, respond with text.
-8. Use execute_task ONLY when the task needs screen interaction (navigating menus, clicking buttons). Always include the app name in the goal.
+8. Lists → ALWAYS use create_list, add_to_list, check_list_item. NEVER use execute_task for lists.
+9. Use execute_task ONLY when the task needs screen interaction (navigating menus, clicking buttons). Always include the app name in the goal.
 
 Examples:
 - "play music on youtube" → youtube_play {"query": "music"}
@@ -122,6 +129,10 @@ Examples:
 - "what's the time" → get_datetime
 - "open camera" → open_app {"app_name": "Camera"}
 - "make youtube fullscreen" → youtube_fullscreen {}
+- "make a shopping list with milk eggs bread" → create_list {"title": "Shopping List", "items": ["Milk", "Eggs", "Bread"]}
+- "add butter to shopping list" → add_to_list {"title": "Shopping List", "items": ["Butter"]}
+- "mark milk as done" → check_list_item {"title": "Shopping List", "item": "Milk"}
+- "export my shopping list" → export_note {"title": "Shopping List"}
 
 For questions/chat, respond with plain text. Do NOT use any action.
 ''';

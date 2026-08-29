@@ -10,6 +10,7 @@ import 'shizuku_service.dart';
 import 'screen_automation_service.dart';
 import 'task_executor.dart';
 import 'ai_service.dart';
+import 'gallery_service.dart';
 
 class ActionHandler {
   final AppLauncherService _appLauncher = AppLauncherService();
@@ -20,6 +21,7 @@ class ActionHandler {
   final SystemControlService _systemControl = SystemControlService();
   final ShizukuService _shizuku = ShizukuService();
   final ScreenAutomationService _screenAutomation = ScreenAutomationService();
+  final GalleryService _gallery = GalleryService();
 
   ShizukuService get shizuku => _shizuku;
   ScreenAutomationService get screenAutomation => _screenAutomation;
@@ -40,6 +42,15 @@ class ActionHandler {
         case 'open_app':
           result = await _appLauncher.openApp(
             action.params['app_name'] as String? ?? '',
+          );
+          break;
+
+        case 'open_app_section':
+          final params = action.params.map((key, value) => MapEntry(key, value.toString()));
+          result = await _appLauncher.openAppSection(
+            appName: action.params['app_name'] as String? ?? '',
+            section: action.params['section'] as String?,
+            params: params,
           );
           break;
 
@@ -105,8 +116,11 @@ class ActionHandler {
         case 'send_email':
           result = await _communication.sendEmail(
             to: action.params['to'] as String? ?? '',
+            cc: action.params['cc'] as String?,
+            bcc: action.params['bcc'] as String?,
             subject: action.params['subject'] as String?,
             body: action.params['body'] as String?,
+            attachmentPath: action.params['attachment_path'] as String?,
           );
           break;
 
@@ -193,6 +207,33 @@ class ActionHandler {
           );
           break;
 
+        case 'create_list':
+          result = await _notes.createList(
+            title: action.params['title'] as String? ?? 'Untitled List',
+            items: (action.params['items'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+          );
+          break;
+
+        case 'add_to_list':
+          result = await _notes.addToList(
+            title: action.params['title'] as String? ?? 'Untitled List',
+            items: (action.params['items'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+          );
+          break;
+
+        case 'check_list_item':
+          result = await _notes.checkListItem(
+            title: action.params['title'] as String? ?? '',
+            item: action.params['item'] as String? ?? '',
+          );
+          break;
+
+        case 'export_note':
+          result = await _notes.exportNoteToPdf(
+            title: action.params['title'] as String? ?? '',
+          );
+          break;
+
         case 'youtube_fullscreen':
           result = await _systemControl.youtubeFullscreen();
           break;
@@ -256,6 +297,17 @@ class ActionHandler {
           );
           result = await _currentExecutor!.executeTask(goal);
           _currentExecutor = null;
+          break;
+
+        case 'share_image':
+          result = await _gallery.shareImageToApp(
+            query: action.params['query'] as String? ?? '',
+            appName: action.params['app_name'] as String? ?? '',
+          );
+          break;
+
+        case 'open_gallery':
+          result = await _gallery.openGallery();
           break;
 
         default:

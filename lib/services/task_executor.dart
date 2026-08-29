@@ -73,6 +73,7 @@ Available actions:
 - press_home: {} - Press the home button
 - open_app: {"app_name": "WhatsApp"} - Open an app by name
 - wait: {} - Wait a moment for content to load
+- screenshot: {} - Take a screenshot of the current screen
 - done: {} - Task is complete
 
 Rules:
@@ -90,10 +91,16 @@ Rules:
 - Set is_complete=true ONLY when the task is fully done.
 - If stuck after 3 attempts, set is_complete=true and explain in reasoning.
 - Keep reasoning very brief (1 sentence)
+- SCROLLING INTELLIGENCE: Before scrolling, analyze what's visible. If the target element might be off-screen, scroll in the logical direction. After scrolling, compare what changed.
+- If scrolling reveals no new content (same elements visible), stop scrolling and try a different approach.
+- For long lists (followers, contacts, messages), scroll systematically and note items as you go.
 
 For YouTube tasks:
-- To play a video, click on the video title or thumbnail text from the search results
+- First, wait for the YouTube app to fully load after opening
+- To play a video, look for video titles in the search results and click the first one
 - After clicking a video, it will auto-play. Then set is_complete=true
+- Do NOT press enter after searching — YouTube auto-suggests results
+- If you see 'No results found', try a different search query
 
 For note/writing tasks:
 - Open the notes app (Samsung Notes, Notes, Google Keep, etc.)
@@ -101,6 +108,18 @@ For note/writing tasks:
 - Click the text area/body to focus it
 - Then use type_text to write the content
 - Samsung Notes: Look for floating "+" button or "All notes" then "+"
+
+For complex multi-step tasks (followers list, contact lists, creating lists from screen):
+- Break the task into phases: navigate → collect data → process → deliver results
+- When collecting data from lists, scroll systematically: read visible items, scroll down, read new items, repeat
+- Keep a mental note of items already seen to avoid duplicates
+- If the task involves sending collected data, use type_text to paste the compiled list
+- Be efficient: don't re-navigate to screens you've already visited
+
+For Instagram/Social Media tasks:
+- To open DMs: open Instagram, look for messenger/DM icon (paper plane icon) at the top
+- To check followers: open profile → tap 'followers' → scroll through the list
+- To open a specific chat: open the messaging section, then search for or scroll to find the contact
 
 Samsung OneUI hints:
 - Samsung Settings: "Connections" (not "Network & internet"), "Sounds and vibration" (not "Sound")
@@ -472,6 +491,12 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
       String actionResult = '';
 
       switch (action) {
+        case 'screenshot':
+          final screenshotResult = await _screenService.takeScreenshot();
+          success = screenshotResult != null && screenshotResult.isNotEmpty;
+          actionResult = success ? 'Screenshot captured' : 'Screenshot failed';
+          break;
+
         case 'click_text':
           final text = params['text'] as String? ?? '';
           success = await _screenService.clickByText(text);
@@ -881,6 +906,16 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
       'Calculator': ['calculator', 'calculate', 'calc'],
       'Samsung Internet': ['samsung internet', 'samsung browser'],
       'Samsung Notes': ['samsung notes', 'notes'],
+      'Instagram': ['instagram', 'insta', 'ig'],
+      'Twitter': ['twitter', 'x app', 'tweet'],
+      'Telegram': ['telegram', 'tg'],
+      'Snapchat': ['snapchat', 'snap'],
+      'Discord': ['discord'],
+      'Facebook': ['facebook', 'fb'],
+      'Messenger': ['messenger', 'fb messenger'],
+      'TikTok': ['tiktok', 'tik tok'],
+      'Spotify': ['spotify'],
+      'Netflix': ['netflix'],
     };
 
     for (final entry in appPatterns.entries) {

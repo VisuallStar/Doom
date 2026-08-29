@@ -74,4 +74,74 @@ class AppLauncherService {
       return 'Error opening URL: $e';
     }
   }
+
+  /// Open a specific section of an app
+  Future<String> openAppSection({required String appName, String? section, Map<String, String>? params}) async {
+    final uriStr = _getDeepLink(appName, section, params);
+    if (uriStr != null) {
+      try {
+        final uri = Uri.parse(uriStr);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          return 'Opened ${section ?? "app"} in $appName';
+        }
+      } catch (e) {
+        // Fall back to opening main app
+      }
+    }
+    return await openApp(appName);
+  }
+
+  String? _getDeepLink(String appName, String? section, Map<String, String>? params) {
+    final lowerApp = appName.toLowerCase();
+    final lowerSection = section?.toLowerCase() ?? '';
+    
+    if (lowerApp.contains('instagram')) {
+      if (lowerSection == 'dm' || lowerSection == 'dms' || lowerSection == 'messages' || lowerSection == 'chat') return 'instagram://direct_inbox';
+      if (lowerSection == 'explore') return 'instagram://explore';
+      if (lowerSection == 'profile' && params?['name'] != null) return 'instagram://user?username=${params!['name']}';
+      return 'instagram://';
+    }
+    
+    if (lowerApp.contains('whatsapp')) {
+      if (params?['number'] != null) return 'whatsapp://send?phone=${params!['number']}';
+      return 'whatsapp://';
+    }
+    
+    if (lowerApp.contains('twitter') || lowerApp == 'x') {
+      if (lowerSection == 'dm' || lowerSection == 'dms' || lowerSection == 'messages') return 'twitter://messages';
+      return 'twitter://';
+    }
+    
+    if (lowerApp.contains('messenger') || lowerApp.contains('facebook messenger')) {
+      return 'fb-messenger://';
+    }
+    
+    if (lowerApp.contains('telegram')) {
+      if (params?['name'] != null) return 'tg://resolve?domain=${params!['name']}';
+      return 'tg://';
+    }
+    
+    if (lowerApp.contains('gmail')) {
+      if (lowerSection == 'compose') {
+        final to = params?['email'] ?? '';
+        final subject = params?['subject'] ?? '';
+        final body = params?['body'] ?? '';
+        return 'googlegmail://co?to=$to&subject=$subject&body=$body';
+      }
+      return 'googlegmail://';
+    }
+    
+    if (lowerApp.contains('spotify')) {
+      if (lowerSection == 'search' && params?['query'] != null) return 'spotify://search/${params!['query']}';
+      return 'spotify://';
+    }
+    
+    if (lowerApp.contains('maps') || lowerApp.contains('google maps')) {
+      if (params?['destination'] != null) return 'google.navigation:q=${params!['destination']}';
+      return 'google.navigation:';
+    }
+    
+    return null;
+  }
 }

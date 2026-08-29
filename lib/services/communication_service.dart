@@ -87,17 +87,24 @@ class CommunicationService {
   /// Send an email
   Future<String> sendEmail({
     required String to,
+    String? cc,
+    String? bcc,
     String? subject,
     String? body,
+    String? attachmentPath,
   }) async {
     try {
+      final queryParams = <String, String>{};
+      if (subject != null) queryParams['subject'] = subject;
+      if (body != null) queryParams['body'] = body;
+      if (cc != null) queryParams['cc'] = cc;
+      if (bcc != null) queryParams['bcc'] = bcc;
+      if (attachmentPath != null) queryParams['attachment'] = attachmentPath;
+
       final uri = Uri(
         scheme: 'mailto',
         path: to,
-        queryParameters: {
-          if (subject != null) 'subject': subject,
-          if (body != null) 'body': body,
-        },
+        queryParameters: queryParams.isEmpty ? null : queryParams,
       );
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);

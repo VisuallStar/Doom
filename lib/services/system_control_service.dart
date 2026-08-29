@@ -152,14 +152,14 @@ class SystemControlService {
       final encodedQuery = Uri.encodeComponent(query);
       final ytUri = Uri.parse('vnd.youtube://results?search_query=$encodedQuery');
       await launchUrl(ytUri, mode: LaunchMode.externalApplication);
-      return 'Playing "$query" on YouTube. Tap the first video to play it.';
+      return 'Opened YouTube search for "$query".';
     } catch (_) {
       try {
         // Fallback: https URL with YouTube app
         final encodedQuery = Uri.encodeComponent(query);
         final ytUri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
         await launchUrl(ytUri, mode: LaunchMode.externalApplication);
-        return 'Opened YouTube with "$query". Tap any video to play.';
+        return 'Opened YouTube search for "$query".';
       } catch (e2) {
         return 'Error playing YouTube video: $e2';
       }

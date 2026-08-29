@@ -22,6 +22,11 @@ class MainActivity : FlutterActivity() {
     private var eventSink: EventChannel.EventSink? = null
     private var overlayView: View? = null
 
+    private val GALLERY_PICK_REQ = 1001
+    private val GALLERY_PICK_APP_REQ = 1002
+    private var pendingShareAppName: String? = null
+    private var pendingResult: MethodChannel.Result? = null
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -166,7 +171,83 @@ class MainActivity : FlutterActivity() {
             }
         }
 
+        // Gallery channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.privateagent/gallery").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "shareImage" -> {
+                    pendingResult = result
+                    pendingShareAppName = null
+                    val intent = Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                    intent.type = "image/*"
+                    startActivityForResult(intent, GALLERY_PICK_REQ)
+                }
+                "shareImageToApp" -> {
+                    pendingResult = result
+                    pendingShareAppName = call.argument<String>("appName")
+                    val intent = Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                    intent.type = "image/*"
+                    startActivityForResult(intent, GALLERY_PICK_APP_REQ)
+                }
+                "openGallery" -> {
+                    val intent = Intent(Intent.ACTION_VIEW)
+                    intent.type = "image/*"
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    try {
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+
         registerAccessibilityChannel(flutterEngine, this)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if ((requestCode == GALLERY_PICK_REQ || requestCode == GALLERY_PICK_APP_REQ) && resultCode == android.app.Activity.RESULT_OK) {
+            val uri = data?.data
+            if (uri != null) {
+                val shareIntent = Intent(Intent.ACTION_SEND)
+                shareIntent.type = "image/*"
+                shareIntent.putExtra(Intent.EXTRA_STREAM, uri)
+                shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                
+                if (requestCode == GALLERY_PICK_APP_REQ && pendingShareAppName != null) {
+                    val packageName = getPackageNameForApp(pendingShareAppName!!)
+                    if (packageName != null) {
+                        shareIntent.setPackage(packageName)
+                    }
+                }
+                
+                try {
+                    startActivity(Intent.createChooser(shareIntent, "Share Image"))
+                    pendingResult?.success(true)
+                } catch (e: Exception) {
+                    pendingResult?.success(false)
+                }
+            } else {
+                pendingResult?.success(false)
+            }
+            pendingResult = null
+            pendingShareAppName = null
+        }
+    }
+    
+    private fun getPackageNameForApp(appName: String): String? {
+        val lower = appName.toLowerCase()
+        return when {
+            lower.contains("whatsapp") -> "com.whatsapp"
+            lower.contains("instagram") -> "com.instagram.android"
+            lower.contains("twitter") || lower.contains("x") -> "com.twitter.android"
+            lower.contains("facebook") -> "com.facebook.katana"
+            lower.contains("telegram") -> "org.telegram.messenger"
+            lower.contains("messenger") -> "com.facebook.orca"
+            else -> null
+        }
     }
 
     companion object {
