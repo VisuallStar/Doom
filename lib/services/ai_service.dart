@@ -105,7 +105,7 @@ MULTI-STEP (needs screen interaction):
 
 RULES:
 1. Use instant actions whenever possible. They are fast and reliable.
-2. YouTube → Use youtube_search or youtube_play by default. Use execute_task ONLY when the user specifically wants auto-play.
+2. YouTube → ALWAYS use execute_task when the user wants to play a video (e.g. "play X on youtube") so it can actually click the video. Use youtube_search ONLY if they just want to search without auto-playing.
 3. Volume, brightness, timeout, notifications, time, torch, screenshot → ALWAYS instant action.
 4. Notes → ALWAYS use create_note, append_note, read_note, list_notes. NEVER use execute_task for notes.
 5. SMS → ALWAYS use send_sms (sends directly). NEVER use execute_task for SMS.
@@ -115,7 +115,7 @@ RULES:
 9. Use execute_task ONLY when the task needs screen interaction (navigating menus, clicking buttons). Always include the app name in the goal.
 
 Examples:
-- "play music on youtube" → youtube_play {"query": "music"}
+- "play music on youtube" → execute_task {"goal": "search and play music on youtube"}
 - "search cats youtube" → youtube_search {"query": "cats"}
 - "volume 80" → set_volume {"level": 80}
 - "set screen timeout 5 minutes" → set_screen_timeout {"seconds": 300}

@@ -74,6 +74,15 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
         </intent>
+        <!-- Custom app schemes -->
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="instagram" /></intent>
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="twitter" /></intent>
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="fb-messenger" /></intent>
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="tg" /></intent>
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="googlegmail" /></intent>
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="spotify" /></intent>
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="google.navigation" /></intent>
+        
         <package android:name="com.google.android.youtube" />
         <package android:name="com.whatsapp" />
     </queries>
