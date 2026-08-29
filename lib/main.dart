@@ -22,9 +22,8 @@ void overlayMain() {
         primaryColor: const Color(0xFF4F46E5),
         useMaterial3: true,
         colorScheme: const ColorScheme.light(
-          background: Colors.transparent,
+          surface: Colors.transparent,
           primary: Color(0xFF4F46E5),
-          surface: Colors.white,
           onSurface: Color(0xFF1E293B),
           onPrimary: Colors.white,
         ),
