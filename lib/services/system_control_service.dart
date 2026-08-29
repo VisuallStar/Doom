@@ -3,6 +3,7 @@ import 'package:screen_brightness/screen_brightness.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'screen_automation_service.dart';
 
 class SystemControlService {
   SystemControlService() {
@@ -145,25 +146,37 @@ class SystemControlService {
     }
   }
 
-  /// Play a YouTube video by search query — uses vnd.youtube scheme for auto-play
+  /// Play a YouTube video by search query — opens results then taps the first video.
   Future<String> youtubePlay(String query) async {
     try {
-      // Use vnd.youtube scheme to open directly in YouTube app
       final encodedQuery = Uri.encodeComponent(query);
-      final ytUri = Uri.parse('vnd.youtube://results?search_query=$encodedQuery');
+      final ytUri = Uri.parse(
+        'https://www.youtube.com/results?search_query=$encodedQuery',
+      );
       await launchUrl(ytUri, mode: LaunchMode.externalApplication);
       return 'Opened YouTube search for "$query".';
-    } catch (_) {
-      try {
-        // Fallback: https URL with YouTube app
-        final encodedQuery = Uri.encodeComponent(query);
-        final ytUri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
-        await launchUrl(ytUri, mode: LaunchMode.externalApplication);
-        return 'Opened YouTube search for "$query".';
-      } catch (e2) {
-        return 'Error playing YouTube video: $e2';
-      }
+    } catch (e) {
+      return 'Error playing YouTube video: $e';
     }
+  }
+
+  /// Open YouTube search results and auto-tap the first video via accessibility.
+  Future<String> youtubePlayAutomated(
+    String query,
+    ScreenAutomationService screen,
+  ) async {
+    final openResult = await youtubePlay(query);
+    await Future.delayed(const Duration(milliseconds: 2800));
+
+    if (!await screen.isServiceRunning()) {
+      return '$openResult Enable accessibility to auto-play the first result.';
+    }
+
+    if (await screen.clickFirstYoutubeVideo()) {
+      return 'Playing "$query" on YouTube.';
+    }
+
+    return 'Opened YouTube for "$query" but could not tap the first video. Try again.';
   }
 
   /// Make YouTube video fullscreen by clicking the fullscreen button via accessibility

@@ -85,9 +85,10 @@ INSTANT ACTIONS (no screen interaction needed):
 - take_screenshot: {}
 - screen_time: {}
 - youtube_search: {"query": "funny cats"} - Opens YouTube search
-- youtube_play: {"query": "lofi music"} - Opens YouTube and auto-plays
+- youtube_play: {"query": "lofi music"} - Opens YouTube and auto-plays the first result
 - youtube_fullscreen: {} - Makes current YouTube video fullscreen
-- create_note: {"title": "Shopping List", "content": "Milk, eggs, bread"} - Creates a note in background
+- create_note: {"title": "Shopping List", "content": "Milk, eggs, bread"} - Quick note saved in background (no screen control)
+- write_note_in_app: {"title": "Application", "content": "Dear Sir...", "export_pdf": false} - Open Samsung Notes / Google Keep, write and save in the real notes app. Set export_pdf true if user wants PDF.
 - append_note: {"title": "Shopping List", "content": "Butter"} - Appends to an existing note
 - list_notes: {} - Lists all saved notes
 - read_note: {"title": "Shopping List"} - Reads a saved note
@@ -105,23 +106,26 @@ MULTI-STEP (needs screen interaction):
 
 RULES:
 1. Use instant actions whenever possible. They are fast and reliable.
-2. YouTube → ALWAYS use execute_task when the user wants to play a video (e.g. "play X on youtube") so it can actually click the video. Use youtube_search ONLY if they just want to search without auto-playing.
+2. YouTube play → ALWAYS use youtube_play when the user wants to watch/play a video. Use youtube_search ONLY for search without playing.
 3. Volume, brightness, timeout, notifications, time, torch, screenshot → ALWAYS instant action.
-4. Notes → ALWAYS use create_note, append_note, read_note, list_notes. NEVER use execute_task for notes.
-5. SMS → ALWAYS use send_sms (sends directly). NEVER use execute_task for SMS.
-6. Reminders → ALWAYS use set_reminder. NEVER use execute_task for reminders.
-7. DO NOT open apps unnecessarily. If the user just asks a question, respond with text.
-8. Lists → ALWAYS use create_list, add_to_list, check_list_item. NEVER use execute_task for lists.
-9. Use execute_task ONLY when the task needs screen interaction (navigating menus, clicking buttons). Always include the app name in the goal.
+4. Quick notes (no app mentioned) → use create_note, append_note, read_note, list_notes.
+5. Notes in the Notes app (Samsung Notes, Google Keep, "open notes and write", save as PDF in notes app) → ALWAYS use write_note_in_app. NEVER use create_note for those.
+6. SMS → ALWAYS use send_sms (sends directly). NEVER use execute_task for SMS.
+7. Reminders → ALWAYS use set_reminder. NEVER use execute_task for reminders.
+8. DO NOT open apps unnecessarily. If the user just asks a question, respond with text.
+9. Lists → ALWAYS use create_list, add_to_list, check_list_item. NEVER use execute_task for lists.
+10. Use execute_task ONLY when the task needs screen interaction and no dedicated action exists. Always include the app name in the goal.
 
 Examples:
-- "play music on youtube" → execute_task {"goal": "search and play music on youtube"}
+- "play music on youtube" → youtube_play {"query": "music"}
 - "search cats youtube" → youtube_search {"query": "cats"}
 - "volume 80" → set_volume {"level": 80}
 - "set screen timeout 5 minutes" → set_screen_timeout {"seconds": 300}
 - "notifications" → read_notifications
 - "call mom on whatsapp" → whatsapp_call {"contact_name": "Mom"}
 - "write hello in notes" → create_note {"title": "Note", "content": "hello"}
+- "open notes app and write my application" → write_note_in_app {"title": "Application", "content": "..."}
+- "save my note as pdf in notes app" → write_note_in_app {"title": "Note", "content": "...", "export_pdf": true}
 - "add milk to shopping list" → append_note {"title": "Shopping List", "content": "milk"}
 - "what notes do I have" → list_notes {}
 - "text john hey" → send_sms {"contact_name": "John", "message": "hey"}
@@ -132,7 +136,7 @@ Examples:
 - "make a shopping list with milk eggs bread" → create_list {"title": "Shopping List", "items": ["Milk", "Eggs", "Bread"]}
 - "add butter to shopping list" → add_to_list {"title": "Shopping List", "items": ["Butter"]}
 - "mark milk as done" → check_list_item {"title": "Shopping List", "item": "Milk"}
-- "export my shopping list" → export_note {"title": "Shopping List"}
+- "export my shopping list" → export_note {"title": "Shopping List"} (exports a real PDF file)
 
 For questions/chat, respond with plain text. Do NOT use any action.
 ''';

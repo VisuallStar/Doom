@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
 /// Background notes service — stores notes as plain text files
-/// so the agent doesn't need screen control for Samsung Notes.
+/// so the agent doesn't need screen control for quick notes.
 class NotesService {
   Future<Directory> _notesDir() async {
     final appDir = await getApplicationDocumentsDirectory();
@@ -19,6 +21,42 @@ class NotesService {
         .replaceAll(RegExp(r'[^a-zA-Z0-9_\-\s]'), '')
         .replaceAll(RegExp(r'\s+'), '_')
         .toLowerCase();
+  }
+
+  Future<File?> _findNoteFile(String title) async {
+    final dir = await _notesDir();
+    final sanitized = _sanitizeFilename(title);
+    final file = File('${dir.path}/${sanitized}.txt');
+    if (await file.exists()) return file;
+
+    final files = await dir
+        .list()
+        .where((f) => f is File && f.path.endsWith('.txt'))
+        .toList();
+    for (final f in files) {
+      if (f.path.toLowerCase().contains(sanitized)) {
+        return f as File;
+      }
+    }
+    return null;
+  }
+
+  String _bodyFromNoteContent(String content, String title) {
+    final lines = content.split('\n');
+    final bodyLines = <String>[];
+    var skippedHeader = false;
+
+    for (final line in lines) {
+      if (!skippedHeader) {
+        if (line.startsWith('# ') || line.startsWith('Created:')) continue;
+        if (line.trim().isEmpty && bodyLines.isEmpty) continue;
+        skippedHeader = true;
+      }
+      bodyLines.add(line);
+    }
+
+    final body = bodyLines.join('\n').trim();
+    return body.isEmpty ? content.trim() : body;
   }
 
   /// Create a new note with title and content
@@ -77,17 +115,8 @@ class NotesService {
   /// Read a note by title
   Future<String> readNote({required String title}) async {
     try {
-      final dir = await _notesDir();
-      final sanitized = _sanitizeFilename(title);
-      final file = File('${dir.path}/${sanitized}.txt');
-      if (!await file.exists()) {
-        // Try partial match
-        final files = await dir.list().where((f) => f is File && f.path.endsWith('.txt')).toList();
-        for (final f in files) {
-          if (f.path.toLowerCase().contains(sanitized)) {
-            return await (f as File).readAsString();
-          }
-        }
+      final file = await _findNoteFile(title);
+      if (file == null) {
         return 'Note "$title" not found.';
       }
       return await file.readAsString();
@@ -99,10 +128,8 @@ class NotesService {
   /// Delete a note by title
   Future<String> deleteNote({required String title}) async {
     try {
-      final dir = await _notesDir();
-      final sanitized = _sanitizeFilename(title);
-      final file = File('${dir.path}/${sanitized}.txt');
-      if (!await file.exists()) {
+      final file = await _findNoteFile(title);
+      if (file == null) {
         return 'Note "$title" not found.';
       }
       await file.delete();
@@ -143,8 +170,7 @@ class NotesService {
       for (final item in items) {
         sb.writeln('- [ ] $item');
       }
-      // Add a newline before the new items for spacing if needed, but file.writeAsString append is fine.
-      await file.writeAsString('\n' + sb.toString().trimRight(), mode: FileMode.append);
+      await file.writeAsString('\n${sb.toString().trimRight()}', mode: FileMode.append);
       return 'Added ${items.length} items to "$title".';
     } catch (e) {
       return 'Error adding to list: $e';
@@ -154,22 +180,14 @@ class NotesService {
   /// Mark a list item as done
   Future<String> checkListItem({required String title, required String item}) async {
     try {
-      final dir = await _notesDir();
-      final sanitized = _sanitizeFilename(title);
-      final file = File('${dir.path}/${sanitized}.txt');
-      if (!await file.exists()) {
+      final file = await _findNoteFile(title);
+      if (file == null) {
         return 'List "$title" not found.';
       }
       String content = await file.readAsString();
-      
-      // Look for "- [ ] item" case-insensitively, or just do string replacement
-      // A simple regex to replace `- [ ] item` with `- [x] item`
-      // We'll use a regex that matches the item name case-insensitively
+
       final regex = RegExp(r'-\s*\[\s*\]\s*' + RegExp.escape(item), caseSensitive: false);
       if (regex.hasMatch(content)) {
-        // Just replace the first occurrence or all occurrences that match the text
-        // To be safe, let's just do a string replace of the exact matched line
-        // But the simplest is:
         content = content.replaceFirstMapped(regex, (match) {
           final matchedText = match.group(0)!;
           return matchedText.replaceFirst(RegExp(r'\[\s*\]'), '[x]');
@@ -184,27 +202,51 @@ class NotesService {
     }
   }
 
-  /// Export a note as a file via share dialog
+  /// Export a note as a real PDF file via the share dialog.
   Future<String> exportNoteToPdf({required String title}) async {
     try {
-      final dir = await _notesDir();
-      final sanitized = _sanitizeFilename(title);
-      final file = File('${dir.path}/${sanitized}.txt');
-      if (!await file.exists()) {
+      final file = await _findNoteFile(title);
+      if (file == null) {
         return 'Note "$title" not found.';
       }
-      
-      // Save it to a temporary directory for sharing to avoid permission issues
-      final tempDir = await getTemporaryDirectory();
-      final exportFile = File('${tempDir.path}/${sanitized}.md');
-      final content = await file.readAsString();
-      await exportFile.writeAsString(content);
 
-      // Use Share to share the file
-      await Share.shareXFiles([XFile(exportFile.path)], text: 'Exported Note: $title');
-      return 'Opened share dialog for "$title".';
+      final rawContent = await file.readAsString();
+      final body = _bodyFromNoteContent(rawContent, title);
+      final sanitized = _sanitizeFilename(title);
+
+      final pdf = pw.Document();
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(40),
+          build: (context) => [
+            pw.Text(
+              title,
+              style: pw.TextStyle(
+                fontSize: 22,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.SizedBox(height: 16),
+            pw.Text(
+              body,
+              style: const pw.TextStyle(fontSize: 12, lineSpacing: 1.4),
+            ),
+          ],
+        ),
+      );
+
+      final tempDir = await getTemporaryDirectory();
+      final exportFile = File('${tempDir.path}/$sanitized.pdf');
+      await exportFile.writeAsBytes(await pdf.save());
+
+      await Share.shareXFiles(
+        [XFile(exportFile.path, mimeType: 'application/pdf')],
+        text: 'Exported Note: $title',
+      );
+      return 'Exported "$title" as PDF.';
     } catch (e) {
-      return 'Error exporting note: $e';
+      return 'Error exporting note to PDF: $e';
     }
   }
 }

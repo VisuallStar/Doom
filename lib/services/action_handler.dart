@@ -184,6 +184,29 @@ class ActionHandler {
           );
           break;
 
+        case 'write_note_in_app':
+          final noteTitle = action.params['title'] as String? ?? 'Note';
+          final noteContent = action.params['content'] as String? ?? '';
+          final exportPdf = action.params['export_pdf'] == true;
+          if (aiService == null) {
+            result =
+                'AI service not available. Enable accessibility and try again.';
+            break;
+          }
+          _currentExecutor = TaskExecutor(
+            aiService: aiService,
+            screenService: _screenAutomation,
+            appLauncher: _appLauncher,
+            shizukuService: _shizuku,
+            onProgress: onProgress,
+          );
+          final notesGoal = exportPdf
+              ? 'Open Samsung Notes or Google Keep, create a new note titled "$noteTitle", write this content: $noteContent, save it, then export or share it as PDF'
+              : 'Open Samsung Notes or Google Keep, create a new note titled "$noteTitle", write this content: $noteContent, and save it';
+          result = await _currentExecutor!.executeTask(notesGoal);
+          _currentExecutor = null;
+          break;
+
         case 'append_note':
           result = await _notes.appendNote(
             title: action.params['title'] as String? ?? 'Untitled',
@@ -245,9 +268,28 @@ class ActionHandler {
           break;
 
         case 'youtube_play':
-          result = await _systemControl.youtubePlay(
-            action.params['query'] as String? ?? '',
-          );
+          final query = action.params['query'] as String? ?? '';
+          final accessibilityOn = await _screenAutomation.isServiceRunning();
+          if (accessibilityOn) {
+            result = await _systemControl.youtubePlayAutomated(
+              query,
+              _screenAutomation,
+            );
+          } else if (aiService != null) {
+            _currentExecutor = TaskExecutor(
+              aiService: aiService,
+              screenService: _screenAutomation,
+              appLauncher: _appLauncher,
+              shizukuService: _shizuku,
+              onProgress: onProgress,
+            );
+            result = await _currentExecutor!.executeTask(
+              'Open YouTube, search for "$query", and play the first video result',
+            );
+            _currentExecutor = null;
+          } else {
+            result = await _systemControl.youtubePlay(query);
+          }
           break;
 
         // ─── Screen Automation Actions ────────────────────────

@@ -246,6 +246,61 @@ class ScreenAutomationService {
     }
   }
 
+  /// Tap the first YouTube search-result video on screen.
+  Future<bool> clickFirstYoutubeVideo() async {
+    final nodes = await dumpScreen();
+    if (nodes.isEmpty) return false;
+
+    const skipExact = {
+      'search', 'youtube', 'home', 'shorts', 'subscriptions', 'library',
+      'account', 'cast', 'filter', 'all', 'videos', 'channels', 'playlists',
+    };
+
+    Map<String, dynamic>? best;
+    var bestTop = 99999;
+
+    for (final node in nodes) {
+      if (node['isClickable'] != true) continue;
+
+      final text = (node['text'] ?? node['contentDescription'] ?? '')
+          .toString()
+          .trim();
+      if (text.length < 4) continue;
+
+      final lower = text.toLowerCase();
+      if (skipExact.contains(lower)) continue;
+      if (lower.contains('search') ||
+          lower.contains('filter') ||
+          lower.contains('sign in')) {
+        continue;
+      }
+      if (RegExp(r'^\d+:\d+').hasMatch(lower) ||
+          RegExp(r'^\d+ (view|views)').hasMatch(lower)) {
+        continue;
+      }
+
+      final bounds = node['bounds'];
+      if (bounds is! Map) continue;
+
+      final top = (bounds['top'] as num?)?.toInt() ?? 0;
+      if (top < 220 || top > 2100) continue;
+
+      if (top < bestTop) {
+        best = node;
+        bestTop = top;
+      }
+    }
+
+    if (best != null) {
+      final b = best['bounds'] as Map;
+      final x = ((b['left'] as num) + (b['right'] as num)) / 2.0;
+      final y = ((b['top'] as num) + (b['bottom'] as num)) / 2.0;
+      if (await clickAt(x, y)) return true;
+    }
+
+    return clickAt(540, 720);
+  }
+
   /// Click at specific screen coordinates
   Future<bool> clickAt(double x, double y) async {
     try {
