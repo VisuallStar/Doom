@@ -155,6 +155,24 @@ class ActionHandler {
           result = await _systemControl.takeScreenshot();
           break;
 
+        case 'take_context_screenshot':
+          final context = action.params['context'] as String? ?? '';
+          if (aiService == null) {
+            result = 'AI service not available. Enable accessibility and try again.';
+            break;
+          }
+          _currentExecutor = TaskExecutor(
+            aiService: aiService,
+            screenService: _screenAutomation,
+            appLauncher: _appLauncher,
+            shizukuService: _shizuku,
+            onProgress: onProgress,
+          );
+          final screenshotGoal = '$context, then take a screenshot';
+          result = await _currentExecutor!.executeTask(screenshotGoal);
+          _currentExecutor = null;
+          break;
+
         case 'screen_time':
           result = await _systemControl.getScreenTime();
           break;

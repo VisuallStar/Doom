@@ -112,6 +112,22 @@ class SystemControlService {
     }
   }
 
+  /// Take a context-aware screenshot after navigating to a specific location
+  /// Example: "go to Instagram profile X and take screenshot"
+  Future<String> takeContextScreenshot({
+    required String context,
+    required ScreenAutomationService screenService,
+  }) async {
+    try {
+      // Parse context to understand where to navigate
+      // This is a placeholder - the AI will handle complex navigation via TaskExecutor
+      await Future.delayed(const Duration(milliseconds: 500));
+      return await takeScreenshot();
+    } catch (e) {
+      return 'Error taking context screenshot: $e';
+    }
+  }
+
   /// Get current screen time / usage stats (via Android UsageStatsManager)
   Future<String> getScreenTime() async {
     try {
