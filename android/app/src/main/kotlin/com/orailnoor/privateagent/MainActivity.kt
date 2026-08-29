@@ -458,36 +458,6 @@ class MainActivity : FlutterActivity() {
                             }
                         }
 
-                        "takeScreenshot" -> {
-                            val service = AgentAccessibilityService.instance
-                            if (service == null) {
-                                result.success("Accessibility service is not running.")
-                            } else {
-                                try {
-                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                                        service.takeScreenshot(
-                                            android.view.Display.DEFAULT_DISPLAY,
-                                            context.mainExecutor,
-                                            object : android.accessibilityservice.AccessibilityService.TakeScreenshotCallback {
-                                                override fun onSuccess(screenshot: android.accessibilityservice.AccessibilityService.ScreenshotResult) {
-                                                    result.success("Screenshot captured successfully.")
-                                                }
-                                                override fun onFailure(errorCode: Int) {
-                                                    result.success("Screenshot failed with error code: $errorCode")
-                                                }
-                                            }
-                                        )
-                                    } else {
-                                        // Fallback for older Android versions - perform global action
-                                        service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_TAKE_SCREENSHOT)
-                                        result.success("Screenshot triggered.")
-                                    }
-                                } catch (e: Exception) {
-                                    result.success("Error taking screenshot: ${e.message}")
-                                }
-                            }
-                        }
-
                         else -> result.notImplemented()
                     }
                 }
