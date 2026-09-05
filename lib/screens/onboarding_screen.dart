@@ -589,91 +589,96 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   // --- STEP 1: WELCOME SCREEN ---
   Widget _buildWelcomePage(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Spacer(flex: 3),
-          // Large Custom Glowing Logo Container
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              // Outer Halo Glow
-              Container(
-                width: 170,
-                height: 170,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Theme.of(context).primaryColor.withOpacity(0.12),
-                ),
-              ),
-              Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isDark ? const Color(0xFF151D30) : Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.25 : 0.08),
-                      blurRadius: 25,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: Theme.of(context).primaryColor.withOpacity(0.15),
-                    width: 1.5,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 32),
+                  // Large Custom Glowing Logo Container
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Outer Halo Glow
+                      Container(
+                        width: 170,
+                        height: 170,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Theme.of(context).primaryColor.withOpacity(0.12),
+                        ),
+                      ),
+                      Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark ? const Color(0xFF151D30) : Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(isDark ? 0.25 : 0.08),
+                              blurRadius: 25,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                          border: Border.all(
+                            color: Theme.of(context).primaryColor.withOpacity(0.15),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.smart_toy_rounded,
+                          size: 70,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                child: Icon(
-                  Icons.smart_toy_rounded,
-                  size: 70,
-                  color: Theme.of(context).primaryColor,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(flex: 2),
-          // Clean Title
-          Text(
-            'PrivateAgent',
-            style: TextStyle(
-              fontSize: 38,
-              fontWeight: FontWeight.w900,
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Your local, secure, and smart mobile companion. PrivateAgent can navigate apps, perform operations, and speak with you.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
-              height: 1.55,
-            ),
-          ),
-          const Spacer(flex: 2),
+                  const SizedBox(height: 32),
+                  // Clean Title
+                  Text(
+                    'PrivateAgent',
+                    style: TextStyle(
+                      fontSize: 38,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Your local, secure, and smart mobile companion. PrivateAgent can navigate apps, perform operations, and speak with you.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                      height: 1.55,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
 
-          // Custom Sleek Features list
-          _buildFeatureCard(
-            Icons.vpn_key_outlined,
-            'Local & Private',
-            'Full support for local-first execution. Keys remain encrypted locally.',
-            isDark,
-          ),
-          const SizedBox(height: 12),
-          _buildFeatureCard(
-            Icons.ads_click_rounded,
-            'Automated Actions',
-            'Can read your screen and perform operations across other apps.',
-            isDark,
-          ),
+                  // Custom Sleek Features list
+                  _buildFeatureCard(
+                    Icons.vpn_key_outlined,
+                    'Local & Private',
+                    'Full support for local-first execution. Keys remain encrypted locally.',
+                    isDark,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildFeatureCard(
+                    Icons.ads_click_rounded,
+                    'Automated Actions',
+                    'Can read your screen and perform operations across other apps.',
+                    isDark,
+                  ),
 
-          const Spacer(flex: 3),
-          // Get Started button
+                  const SizedBox(height: 48),
+                  // Get Started button
           Container(
             width: double.infinity,
             height: 56,
@@ -722,9 +727,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               ),
             ),
           ),
-          const SizedBox(height: 24),
-        ],
-      ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

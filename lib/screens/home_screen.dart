@@ -557,8 +557,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
 
-          Column(
-            children: [
+          SafeArea(
+            child: Column(
+              children: [
               // Pill selector switcher
               _buildModeSelector(isDark),
 
@@ -701,6 +702,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               // Custom Input bar
               _buildInputBar(isDark),
             ],
+          ),
           ),
         ],
       ),

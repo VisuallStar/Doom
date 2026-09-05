@@ -106,8 +106,10 @@ class _TaskHistoryScreenState extends State<TaskHistoryScreen> {
                         child: Card(
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            child: Wrap(
+                              alignment: WrapAlignment.spaceAround,
+                              spacing: 8,
+                              runSpacing: 8,
                               children: [
                                 _buildStatColumn('Total', _analytics!['totalTasks'].toString(), isDark: Theme.of(context).brightness == Brightness.dark),
                                 _buildStatColumn('Success', _analytics!['successCount'].toString(), color: Colors.green, isDark: Theme.of(context).brightness == Brightness.dark),
