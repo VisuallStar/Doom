@@ -12,7 +12,7 @@ class AlarmService {
         'minute': minute,
         'label': label ?? '',
       });
-      return result ?? 'Alarm set for ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}';
+      return result ?? 'Alarm set for ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
     } catch (e) {
       return 'Error setting alarm: $e';
     }
@@ -56,7 +56,7 @@ class AlarmService {
         },
       );
       await intent.launch();
-      return 'Reminder set: "$title" on ${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')} at ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}';
+      return 'Reminder set: "$title" on ${day.toString().padLeft(2, '0')}/${month.toString().padLeft(2, '0')} at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
     } catch (e) {
       return 'Error setting reminder: $e';
     }
