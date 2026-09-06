@@ -186,37 +186,62 @@ class AgentAccessibilityService : AccessibilityService() {
         }
     }
 
-    /** Capture screenshot as Base64 string */
+    /** Capture screenshot - saves to gallery AND returns Base64 for AI analysis */
     @RequiresApi(Build.VERSION_CODES.R)
     fun takeScreenshot(callback: (String?) -> Unit) {
-        takeScreenshot(
-            Display.DEFAULT_DISPLAY,
-            mainExecutor,
-            object : TakeScreenshotCallback {
-                override fun onSuccess(screenshotResult: ScreenshotResult) {
-                    val hardwareBuffer = screenshotResult.hardwareBuffer
-                    val bitmap = Bitmap.wrapHardwareBuffer(hardwareBuffer, screenshotResult.colorSpace)
-                        ?.copy(Bitmap.Config.ARGB_8888, false)
-                    
-                    hardwareBuffer.close()
+        try {
+            takeScreenshot(
+                Display.DEFAULT_DISPLAY,
+                mainExecutor,
+                object : TakeScreenshotCallback {
+                    override fun onSuccess(screenshotResult: ScreenshotResult) {
+                        try {
+                            val hardwareBuffer = screenshotResult.hardwareBuffer
+                            val bitmap = Bitmap.wrapHardwareBuffer(hardwareBuffer, screenshotResult.colorSpace)
+                                ?.copy(Bitmap.Config.ARGB_8888, false)
+                            
+                            hardwareBuffer.close()
 
-                    if (bitmap != null) {
-                        // Compress to lower quality JPEG to save bytes for the API
-                        val byteArrayOutputStream = ByteArrayOutputStream()
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 60, byteArrayOutputStream)
-                        val byteArray = byteArrayOutputStream.toByteArray()
-                        val base64String = Base64.encodeToString(byteArray, Base64.NO_WRAP)
-                        callback(base64String)
-                    } else {
+                            if (bitmap != null) {
+                                // Save to gallery
+                                try {
+                                    android.provider.MediaStore.Images.Media.insertImage(
+                                        contentResolver,
+                                        bitmap,
+                                        "Screenshot_" + System.currentTimeMillis(),
+                                        "Screenshot taken by PrivateAgent"
+                                    )
+                                } catch (e: Exception) {
+                                    android.util.Log.e("AgentAccessibility", "Failed to save screenshot to gallery: ${e.message}")
+                                }
+
+                                // Also return Base64 for AI analysis
+                                val byteArrayOutputStream = ByteArrayOutputStream()
+                                bitmap.compress(Bitmap.CompressFormat.JPEG, 60, byteArrayOutputStream)
+                                val byteArray = byteArrayOutputStream.toByteArray()
+                                val base64String = Base64.encodeToString(byteArray, Base64.NO_WRAP)
+                                callback(base64String)
+                            } else {
+                                callback(null)
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("AgentAccessibility", "Screenshot processing error: ${e.message}")
+                            callback(null)
+                        }
+                    }
+
+                    override fun onFailure(errorCode: Int) {
+                        // Fallback: use system screenshot action
+                        performGlobalAction(GLOBAL_ACTION_TAKE_SCREENSHOT)
                         callback(null)
                     }
                 }
-
-                override fun onFailure(errorCode: Int) {
-                    callback(null)
-                }
-            }
-        )
+            )
+        } catch (e: Exception) {
+            // Final fallback
+            performGlobalAction(GLOBAL_ACTION_TAKE_SCREENSHOT)
+            callback(null)
+        }
     }
 
     // ─── Actions ─────────────────────────────────────────────────

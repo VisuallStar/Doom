@@ -1,82 +1,62 @@
+import 'package:flutter/services.dart';
 import 'package:android_intent_plus/android_intent.dart';
 
 class AlarmService {
-  /// Set an alarm using Android's built-in alarm intent
-  Future<String> setAlarm({
-    required int hour,
-    required int minute,
-    String? label,
-  }) async {
+  static const _channel = MethodChannel('com.doom/device_actions');
+
+  /// Set an alarm directly using native Android API (no screen control)
+  Future<String> setAlarm({required int hour, required int minute, String? label}) async {
     try {
-      final intent = AndroidIntent(
-        action: 'android.intent.action.SET_ALARM',
-        arguments: <String, dynamic>{
-          'android.intent.extra.alarm.HOUR': hour,
-          'android.intent.extra.alarm.MINUTES': minute,
-          if (label != null) 'android.intent.extra.alarm.MESSAGE': label,
-          'android.intent.extra.alarm.SKIP_UI': true,
-        },
-      );
-      await intent.launch();
-      final timeStr =
-          '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-      return 'Alarm set for $timeStr${label != null ? ' ($label)' : ''}';
+      final result = await _channel.invokeMethod<String>('setAlarmDirect', {
+        'hour': hour,
+        'minute': minute,
+        'label': label ?? '',
+      });
+      return result ?? 'Alarm set for ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}';
     } catch (e) {
       return 'Error setting alarm: $e';
     }
   }
 
-  /// Set a timer using Android's built-in timer intent
-  Future<String> setTimer({
-    required int seconds,
-    String? label,
-  }) async {
+  /// Set a timer directly using native Android API (no screen control)
+  Future<String> setTimer({required int seconds, String? label}) async {
     try {
-      final intent = AndroidIntent(
-        action: 'android.intent.action.SET_TIMER',
-        arguments: <String, dynamic>{
-          'android.intent.extra.alarm.LENGTH': seconds,
-          if (label != null) 'android.intent.extra.alarm.MESSAGE': label,
-          'android.intent.extra.alarm.SKIP_UI': true,
-        },
-      );
-      await intent.launch();
-      final minutes = seconds ~/ 60;
-      final secs = seconds % 60;
-      return 'Timer set for ${minutes}m ${secs}s${label != null ? ' ($label)' : ''}';
+      final result = await _channel.invokeMethod<String>('setTimerDirect', {
+        'seconds': seconds,
+        'label': label ?? '',
+      });
+      return result ?? 'Timer set';
     } catch (e) {
       return 'Error setting timer: $e';
     }
   }
 
-  /// Set a calendar reminder using Android's calendar intent (background, no screen control)
+  /// Set a reminder using the calendar
   Future<String> setReminder({
     required String title,
     String? description,
     required int year,
     required int month,
     required int day,
-    int hour = 9,
-    int minute = 0,
+    required int hour,
+    required int minute,
   }) async {
     try {
-      final startTime = DateTime(year, month, day, hour, minute);
-      final endTime = startTime.add(const Duration(hours: 1));
+      final dateTime = DateTime(year, month, day, hour, minute);
+      final endTime = dateTime.add(const Duration(minutes: 30));
       final intent = AndroidIntent(
         action: 'android.intent.action.INSERT',
         data: 'content://com.android.calendar/events',
-        arguments: <String, dynamic>{
-          'title': title,
-          if (description != null) 'description': description,
-          'beginTime': startTime.millisecondsSinceEpoch,
+        arguments: {
+          'beginTime': dateTime.millisecondsSinceEpoch,
           'endTime': endTime.millisecondsSinceEpoch,
+          'title': title,
+          'description': description ?? '',
           'hasAlarm': 1,
         },
       );
       await intent.launch();
-      final dateStr = '${year}-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
-      final timeStr = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-      return 'Reminder "$title" set for $dateStr at $timeStr.';
+      return 'Reminder set: "$title" on ${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')} at ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}';
     } catch (e) {
       return 'Error setting reminder: $e';
     }

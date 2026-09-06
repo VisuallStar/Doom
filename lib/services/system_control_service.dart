@@ -124,20 +124,18 @@ class SystemControlService {
     }
   }
 
-  /// Open YouTube and search for a query using Android Intent (no clicking needed)
+  /// Open YouTube and search for a query using native Android Intent
   Future<String> youtubeSearch(String query) async {
     try {
-      final encodedQuery = Uri.encodeComponent(query);
-      // Try YouTube app directly first
-      final ytUri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
-      await launchUrl(ytUri, mode: LaunchMode.externalApplication);
-      return 'Opened YouTube search for "$query".';
+      final channel = MethodChannel('com.doom/device_actions');
+      final result = await channel.invokeMethod<String>('youtubeSearch', {'query': query});
+      return result ?? 'Opened YouTube search for "$query".';
     } catch (e) {
-      // Fallback: try generic URL launch
+      // Fallback to url_launcher
       try {
         final encodedQuery = Uri.encodeComponent(query);
-        final uri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
-        await launchUrl(uri, mode: LaunchMode.platformDefault);
+        final ytUri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
+        await launchUrl(ytUri, mode: LaunchMode.externalApplication);
         return 'Opened YouTube search for "$query" in browser.';
       } catch (e2) {
         return 'Error searching YouTube: $e2';
@@ -145,21 +143,19 @@ class SystemControlService {
     }
   }
 
-  /// Play a YouTube video by search query — uses vnd.youtube scheme for auto-play
+  /// Play a YouTube video by search query — uses native intent for YouTube app
   Future<String> youtubePlay(String query) async {
     try {
-      // Use vnd.youtube scheme to open directly in YouTube app
-      final encodedQuery = Uri.encodeComponent(query);
-      final ytUri = Uri.parse('vnd.youtube://results?search_query=$encodedQuery');
-      await launchUrl(ytUri, mode: LaunchMode.externalApplication);
-      return 'Playing "$query" on YouTube. Tap the first video to play it.';
+      // Use vnd.youtube scheme for auto-play via native channel
+      final channel = MethodChannel('com.doom/device_actions');
+      final result = await channel.invokeMethod<String>('youtubeSearch', {'query': query});
+      return result ?? 'Playing "$query" on YouTube.';
     } catch (_) {
       try {
-        // Fallback: https URL with YouTube app
         final encodedQuery = Uri.encodeComponent(query);
         final ytUri = Uri.parse('https://www.youtube.com/results?search_query=$encodedQuery');
         await launchUrl(ytUri, mode: LaunchMode.externalApplication);
-        return 'Opened YouTube with "$query". Tap any video to play.';
+        return 'Opened YouTube with "$query".';
       } catch (e2) {
         return 'Error playing YouTube video: $e2';
       }

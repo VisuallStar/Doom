@@ -348,6 +348,56 @@ class MainActivity : FlutterActivity() {
                         result.success("Searching YouTube for $query (browser)")
                     }
                 }
+                "openAppByName" -> {
+                    val name = call.argument<String>("name") ?: ""
+                    val lname = name.lowercase().trim()
+                    try {
+                        // STEP 1: Search installed apps by visible label
+                        val search = Intent(Intent.ACTION_MAIN)
+                        search.addCategory(Intent.CATEGORY_LAUNCHER)
+                        val apps = packageManager.queryIntentActivities(search, 0)
+                        
+                        var bestMatch: android.content.pm.ResolveInfo? = null
+                        for (app in apps) {
+                            val label = app.loadLabel(packageManager).toString().lowercase()
+                            if (label == lname) {
+                                bestMatch = app
+                                break
+                            }
+                            if (label.contains(lname) || lname.contains(label)) {
+                                if (bestMatch == null) bestMatch = app
+                            }
+                        }
+                        
+                        if (bestMatch != null) {
+                            val launch = packageManager.getLaunchIntentForPackage(bestMatch.activityInfo.packageName)
+                            if (launch != null) {
+                                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                startActivity(launch)
+                                result.success("Opened $name")
+                                return@setMethodCallHandler
+                            }
+                        }
+                        
+                        // STEP 2: Fallback to hardcoded package map
+                        val pkg = mapApp(lname.replace(" ", ""))
+                        val intent = packageManager.getLaunchIntentForPackage(pkg)
+                        if (intent != null) {
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                            result.success("Opened $name")
+                            return@setMethodCallHandler
+                        }
+                        
+                        // STEP 3: Fallback to Play Store
+                        val store = Intent(Intent.ACTION_VIEW, Uri.parse("market://search?q=$name"))
+                        store.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(store)
+                        result.success("$name not found. Opened Play Store.")
+                    } catch (e: Exception) {
+                        result.error("APP_ERROR", "Could not open $name: ${e.message}", null)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }
@@ -596,6 +646,67 @@ class MainActivity : FlutterActivity() {
                         else -> result.notImplemented()
                     }
                 }
+        }
+    }
+
+    private fun mapApp(n: String): String {
+        return when (n) {
+            "google" -> "com.google.android.googlequicksearchbox"
+            "googlechrome", "chrome" -> "com.android.chrome"
+            "googlemaps", "maps" -> "com.google.android.apps.maps"
+            "googleplaystore", "playstore", "store" -> "com.android.vending"
+            "gemini" -> "com.google.android.apps.bard"
+            "chatgpt" -> "com.openai.chatgpt"
+            "claude" -> "com.anthropic.claude"
+            "deepseek" -> "com.deepseek.chat"
+            "gallery", "photos" -> "com.google.android.apps.photos"
+            "calculator", "calc" -> "com.android.calculator2"
+            "phone", "dialer" -> "com.android.dialer"
+            "camera" -> "com.android.camera2"
+            "netflix" -> "com.netflix.mediaclient"
+            "amazon" -> "in.amazon.mShop.android.shopping"
+            "amazonprime", "primevideo" -> "com.amazon.avod.thirdpartyclient"
+            "youtube" -> "com.google.android.youtube"
+            "discord" -> "com.discord"
+            "notes" -> "com.google.android.keep"
+            "googledrive", "drive" -> "com.google.android.apps.docs"
+            "canva" -> "com.canva.editor"
+            "uber" -> "com.ubercab"
+            "termux" -> "com.termux"
+            "snapchat" -> "com.snapchat.android"
+            "minecraft" -> "com.mojang.minecraftpe"
+            "messages", "sms" -> "com.google.android.apps.messaging"
+            "filemanager", "files" -> "com.android.documentsui"
+            "zoom" -> "us.zoom.videomeetings"
+            "googlemeet", "meet" -> "com.google.android.apps.tachyon"
+            "gmail" -> "com.google.android.gm"
+            "calendar" -> "com.google.android.calendar"
+            "duolingo" -> "com.duolingo"
+            "settings" -> "com.android.settings"
+            "pinterest" -> "com.pinterest"
+            "whatsapp" -> "com.whatsapp"
+            "instagram" -> "com.instagram.android"
+            "facebook" -> "com.facebook.katana"
+            "twitter", "x" -> "com.twitter.android"
+            "telegram" -> "org.telegram.messenger"
+            "contacts" -> "com.android.contacts"
+            "spotify" -> "com.spotify.music"
+            "reddit" -> "com.reddit.frontpage"
+            "linkedin" -> "com.linkedin.android"
+            "tiktok" -> "com.zhiliaoapp.musically"
+            "threads" -> "com.instagram.barcelona"
+            "signal" -> "org.thoughtcrime.securesms"
+            "vlc" -> "org.videolan.vlc"
+            "firefox" -> "org.mozilla.firefox"
+            "samsunginternet" -> "com.sec.android.app.sbrowser"
+            "samsungnotes" -> "com.samsung.android.app.notes"
+            "samsunggallery" -> "com.sec.android.gallery3d"
+            "samsungclock", "clock" -> "com.sec.android.app.clockpackage"
+            "samsungcalculator" -> "com.sec.android.app.popupcalculator"
+            "samsungcalendar" -> "com.samsung.android.calendar"
+            "samsungmessages" -> "com.samsung.android.messaging"
+            "samsungphone" -> "com.samsung.android.dialer"
+            else -> n
         }
     }
 }

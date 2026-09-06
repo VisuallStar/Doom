@@ -40,9 +40,13 @@ class ActionHandler {
 
       switch (action.action) {
         case 'open_app':
-          result = await _appLauncher.openApp(
-            action.params['app_name'] as String? ?? '',
-          );
+          final appName = action.params['app_name'] as String? ?? '';
+          // Try native 3-tier app opening first (PackageManager label search -> mapApp -> Play Store)
+          result = await deviceActions.openAppByName(appName);
+          // Fallback to Flutter installed_apps if native fails
+          if (result.contains('Error')) {
+            result = await _appLauncher.openApp(appName);
+          }
           break;
 
         case 'launch_package':

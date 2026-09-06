@@ -107,4 +107,11 @@ class DeviceActionsService {
       return result ?? 'Media control executed';
     } catch (e) { return 'Error: $e'; }
   }
+
+  Future<String> openAppByName(String name) async {
+    try {
+      final result = await _channel.invokeMethod<String>('openAppByName', {'name': name});
+      return result ?? 'App opened';
+    } catch (e) { return 'Error: $e'; }
+  }
 }
