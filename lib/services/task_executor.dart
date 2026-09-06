@@ -201,7 +201,7 @@ Samsung OneUI hints:
           final appName = step.params['app_name'] as String? ?? '';
           final res = await _appLauncher.openApp(appName);
           success = res.startsWith('Opened');
-          await Future.delayed(const Duration(milliseconds: 1500));
+          await Future.delayed(const Duration(milliseconds: 500));
         } else if (step.action == 'click_text') {
           final text = step.params['text'] as String? ?? '';
           success = await _screenService.clickByText(text);
@@ -219,10 +219,10 @@ Samsung OneUI hints:
       // If no shortcut is used, and we are currently inside the PrivateAgent app,
       // press Home so the AI doesn't see its own chat bubbles and get confused by the task text.
       final currentPkg = await _screenService.getCurrentPackage();
-      if (currentPkg == 'com.orailnoor.privateagent') {
+      if (currentPkg == 'com.visuallstar.doom') {
         _report('Moving to background...');
         await _screenService.pressHome();
-        await Future.delayed(const Duration(milliseconds: 1500));
+        await Future.delayed(const Duration(milliseconds: 500));
       }
     }
 
@@ -249,9 +249,9 @@ Samsung OneUI hints:
       // Adaptive delay: give Android apps time to transition screens, load data, or open keyboards
       int delay = 500; // Default 0.5s delay for most actions
       if (lastAction == 'open_app') {
-        delay = 1500; // Apps need ~1.5 seconds to cold-start and render
+        delay = 500; // Apps need ~1.5 seconds to cold-start and render
       } else if (lastAction == 'type_text') {
-        delay = 800; // Typing involves keyboards and often triggers network requests
+        delay = 400; // Typing involves keyboards and often triggers network requests
       } else if (lastAction == 'click_text' || lastAction == 'click_at') {
         delay = 600; // Clicking usually triggers a screen transition
       } else if (lastAction == 'scroll') {
@@ -344,7 +344,7 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
             results,
           );
           await _screenService.showToast('Task Cancelled');
-          await Future.delayed(const Duration(seconds: 2));
+          await Future.delayed(const Duration(milliseconds: 500));
           return 'Task cancelled.';
         }
         results.add('AI error: $e');
@@ -361,7 +361,7 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
           results,
         );
         await _screenService.showToast('AI Error: $e');
-        await Future.delayed(const Duration(seconds: 3));
+        await Future.delayed(const Duration(milliseconds: 500));
         return 'I could not complete the task because the AI service failed.';
       }
 
@@ -381,7 +381,7 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
           results,
         );
         await _screenService.showToast('Task Cancelled');
-        await Future.delayed(const Duration(seconds: 2));
+        await Future.delayed(const Duration(milliseconds: 500));
         return 'Task cancelled.';
       }
 
@@ -401,7 +401,7 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
         );
         _report('Retrying step ${step + 1}...\n(Failed to parse: $firstError)');
         // Wait 2 seconds before retrying to prevent rate-limit spam
-        await Future.delayed(const Duration(seconds: 2));
+        await Future.delayed(const Duration(milliseconds: 800));
         try {
           final retryResponse = await _aiService.sendTaskMessage(
             _taskSystemPrompt,
@@ -434,7 +434,7 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
             results,
           );
           await _screenService.showToast('Agent Error: $e');
-          await Future.delayed(const Duration(seconds: 3));
+          await Future.delayed(const Duration(milliseconds: 500));
           return 'I could not understand the AI response. Please try again.';
         }
       }
@@ -536,7 +536,7 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
           break;
 
         case 'wait':
-          await Future.delayed(const Duration(seconds: 1));
+          await Future.delayed(const Duration(milliseconds: 800));
           actionResult = 'Waited';
           success = true;
           break;
@@ -587,7 +587,7 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
             results,
           );
           await _screenService.showToast('Agent stuck. Task stopped.');
-          await Future.delayed(const Duration(seconds: 4));
+          await Future.delayed(const Duration(seconds: 1));
           return 'I could not complete the task. Please try again.';
         }
 
@@ -595,7 +595,7 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
         _report('Recovering: ${recovery.description}');
 
         if (recovery.action == 'wait') {
-          await Future.delayed(const Duration(seconds: 2));
+          await Future.delayed(const Duration(milliseconds: 800));
         } else if (recovery.action == 'press_back') {
           await _screenService.pressBack();
         } else if (recovery.action == 'scroll') {
@@ -647,8 +647,8 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
         await _skillMemory.saveSkill(userGoal, executedSteps);
 
         await _screenService.showToast('Task Complete!');
-        // Wait 4 seconds so the user can see the result before jumping back
-        await Future.delayed(const Duration(seconds: 4));
+        // Wait so the user can see the result before jumping back
+        await Future.delayed(const Duration(milliseconds: 500));
         return reasoning.trim().isEmpty ? 'Done.' : reasoning.trim();
       }
     }
@@ -669,7 +669,7 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
       results,
     );
     await _screenService.showToast('Reached maximum steps.');
-    await Future.delayed(const Duration(seconds: 4));
+    await Future.delayed(const Duration(milliseconds: 500));
 
     return 'I could not complete the task within the allowed steps.';
   }
@@ -730,9 +730,9 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
       // Delay before executing each step
       int delay = 800;
       if (step.action == 'open_app')
-        delay = 1500;
+        delay = 500;
       else if (step.action == 'type_text')
-        delay = 1000;
+        delay = 400;
       else if (step.action == 'click_text' || step.action == 'click_at')
         delay = 700;
       else if (step.action == 'scroll')
@@ -798,7 +798,7 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
           success = actionResult.startsWith('Opened');
           break;
         case 'wait':
-          await Future.delayed(const Duration(seconds: 1));
+          await Future.delayed(const Duration(milliseconds: 800));
           actionResult = 'Waited';
           success = true;
           break;

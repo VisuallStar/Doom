@@ -16,6 +16,49 @@ class AiService {
   static const String nvidiaBaseUrl = 'https://integrate.api.nvidia.com/v1';
   static const String nvidiaDefaultModel = 'z-ai/glm-5.2';
 
+  static const Map<String, Map<String, String>> providerPresets = {
+    'gemini': {
+      'name': 'Gemini',
+      'baseUrl': 'https://generativelanguage.googleapis.com/v1beta/openai',
+      'defaultModel': 'gemini-2.0-flash',
+    },
+    'groq': {
+      'name': 'Groq',
+      'baseUrl': 'https://api.groq.com/openai/v1',
+      'defaultModel': 'llama-3.3-70b-versatile',
+    },
+    'anthropic': {
+      'name': 'Anthropic',
+      'baseUrl': 'https://api.anthropic.com/v1',
+      'defaultModel': 'claude-sonnet-4-20250514',
+    },
+    'openai': {
+      'name': 'OpenAI',
+      'baseUrl': 'https://api.openai.com/v1',
+      'defaultModel': 'gpt-4o-mini',
+    },
+    'nvidia': {
+      'name': 'NVIDIA',
+      'baseUrl': 'https://integrate.api.nvidia.com/v1',
+      'defaultModel': 'z-ai/glm-5.2',
+    },
+    'ollama': {
+      'name': 'Ollama',
+      'baseUrl': 'http://localhost:11434/v1',
+      'defaultModel': 'gemma2',
+    },
+    'custom': {
+      'name': 'Custom',
+      'baseUrl': '',
+      'defaultModel': '',
+    },
+    'local': {
+      'name': 'Local',
+      'baseUrl': 'http://192.168.1.100:8080/v1',
+      'defaultModel': 'default',
+    },
+  };
+
   /// Free, general-purpose chat endpoints verified in NVIDIA's NIM catalog.
   /// The live /models response is intersected with this list so unavailable or
   /// non-chat models never appear in PrivateAgent's NVIDIA model picker.
@@ -289,8 +332,8 @@ Answer questions, explain concepts, brainstorm, write emails/messages, and chat 
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $_apiKey',
-              'HTTP-Referer': 'https://github.com/orailnoor/private-agent',
-              'X-Title': 'PrivateAgent',
+              'HTTP-Referer': 'https://github.com/VisuallStar/Doom',
+              'X-Title': 'Doom',
             },
             body: requestBody,
           )
@@ -388,8 +431,8 @@ Answer questions, explain concepts, brainstorm, write emails/messages, and chat 
       request.headers.addAll({
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $_apiKey',
-        'HTTP-Referer': 'https://github.com/orailnoor/private-agent',
-        'X-Title': 'PrivateAgent',
+        'HTTP-Referer': 'https://github.com/VisuallStar/Doom',
+        'X-Title': 'Doom',
       });
 
       request.body = jsonEncode({
@@ -531,8 +574,8 @@ Answer questions, explain concepts, brainstorm, write emails/messages, and chat 
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer $_apiKey',
-                'HTTP-Referer': 'https://github.com/orailnoor/private-agent',
-                'X-Title': 'PrivateAgent',
+                'HTTP-Referer': 'https://github.com/VisuallStar/Doom',
+                'X-Title': 'Doom',
                 'Connection': 'keep-alive',
               },
               body: jsonEncode({

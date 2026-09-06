@@ -1,4 +1,4 @@
-package com.orailnoor.privateagent
+package com.visuallstar.doom
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
@@ -19,7 +19,7 @@ import java.io.ByteArrayOutputStream
 
 class AgentAccessibilityService : AccessibilityService() {
 
-    private val ownPackageName = "com.orailnoor.privateagent"
+    private val ownPackageName = "com.visuallstar.doom"
 
     companion object {
         var instance: AgentAccessibilityService? = null
@@ -59,7 +59,7 @@ class AgentAccessibilityService : AccessibilityService() {
         val listener = eventListener ?: return
         
         // Filter out events from our own app so we don't record the Stop Overlay button clicks
-        if (event.packageName?.toString() == "com.orailnoor.privateagent") return
+        if (event.packageName?.toString() == "com.visuallstar.doom") return
         
         when (event.eventType) {
             AccessibilityEvent.TYPE_VIEW_CLICKED -> {

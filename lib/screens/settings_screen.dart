@@ -494,10 +494,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                   ),
                   ActionChip(
                     label: const Text(
-                      'Claude',
+                      'Anthropic',
                       style: TextStyle(fontSize: 11),
                     ),
-                    tooltip: 'Anthropic Claude API',
+                    tooltip: 'Anthropic API',
                     onPressed: () {
                       _baseUrlController.text = 'https://api.anthropic.com/v1';
                       _modelController.text = 'claude-sonnet-4-20250514';
@@ -520,8 +520,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                       style: TextStyle(fontSize: 11),
                     ),
                     tooltip: 'For local Llama.cpp or LM Studio',
-                    onPressed: () =>
-                        _baseUrlController.text = 'http://192.168.1.X:8080/v1',
+                    onPressed: () {
+                      _baseUrlController.text = 'http://192.168.1.100:8080/v1';
+                      _modelController.text = 'default';
+                    },
                   ),
                   ActionChip(
                     label: const Text(
@@ -861,7 +863,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 leading: const Icon(Icons.code_rounded),
                 onTap: () {
                   launchUrl(
-                    Uri.parse('https://github.com/orailnoor/private-agent'),
+                    Uri.parse('https://github.com/VisuallStar/Doom'),
                     mode: LaunchMode.externalApplication,
                   );
                 },
@@ -876,7 +878,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
                 onTap: () {
                   launchUrl(
-                    Uri.parse('https://www.youtube.com/orailnoor'),
+                    Uri.parse('https://www.youtube.com/@VisuallStar'),
                     mode: LaunchMode.externalApplication,
                   );
                 },

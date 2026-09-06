@@ -71,7 +71,7 @@ class SystemControlService {
   }
 
   /// Toggle the device flashlight/torch
-  static const _torchChannel = MethodChannel('com.privateagent/torch');
+  static const _torchChannel = MethodChannel('com.doom/torch');
   
   Future<String> toggleTorch(bool enabled) async {
     try {
@@ -97,7 +97,7 @@ class SystemControlService {
   }
 
   /// Take a screenshot using the accessibility service (no clicks needed)
-  static const _accessibilityChannel = MethodChannel('com.privateagent/accessibility');
+  static const _accessibilityChannel = MethodChannel('com.doom/accessibility');
 
   Future<String> takeScreenshot() async {
     try {

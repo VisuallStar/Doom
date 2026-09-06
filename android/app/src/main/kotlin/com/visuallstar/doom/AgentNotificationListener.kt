@@ -1,4 +1,4 @@
-package com.orailnoor.privateagent
+package com.visuallstar.doom
 
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -85,7 +85,7 @@ class AgentNotificationListener : NotificationListenerService() {
 
         // Skip empty notifications and our own
         if (text.isEmpty() && title.isEmpty()) return
-        if (pkg == "com.orailnoor.privateagent") return
+        if (pkg == "com.visuallstar.doom") return
 
         val entry = NotifEntry(pkg, title, text, sbn.postTime)
 

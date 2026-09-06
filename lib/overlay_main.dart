@@ -123,8 +123,8 @@ class _OverlayAppState extends State<OverlayApp> {
   Future<void> _initializeServices() async {
     // 1. Send registration broadcast first so native MethodChannels are active
     final intent = const AndroidIntent(
-      action: 'com.orailnoor.privateagent.REGISTER_BACKGROUND_CHANNELS',
-      package: 'com.orailnoor.privateagent',
+      action: 'com.visuallstar.doom.REGISTER_BACKGROUND_CHANNELS',
+      package: 'com.visuallstar.doom',
     );
     try {
       await intent.sendBroadcast();
@@ -334,8 +334,8 @@ class _OverlayAppState extends State<OverlayApp> {
     const intent = AndroidIntent(
       action: 'android.intent.action.MAIN',
       category: 'android.intent.category.LAUNCHER',
-      package: 'com.orailnoor.privateagent',
-      componentName: 'com.orailnoor.privateagent.MainActivity',
+      package: 'com.visuallstar.doom',
+      componentName: 'com.visuallstar.doom.MainActivity',
       flags: <int>[
         Flag.FLAG_ACTIVITY_NEW_TASK,
         Flag.FLAG_ACTIVITY_REORDER_TO_FRONT,

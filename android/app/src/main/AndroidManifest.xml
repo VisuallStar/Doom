@@ -102,7 +102,7 @@
 
         <receiver android:name=".BackgroundEngineReceiver" android:exported="true">
             <intent-filter>
-                <action android:name="com.orailnoor.privateagent.REGISTER_BACKGROUND_CHANNELS" />
+                <action android:name="com.visuallstar.doom.REGISTER_BACKGROUND_CHANNELS" />
             </intent-filter>
         </receiver>
 

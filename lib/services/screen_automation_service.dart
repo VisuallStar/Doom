@@ -5,7 +5,7 @@ import 'dart:developer' as developer;
 /// Dart bridge to the native AccessibilityService.
 /// Provides screen reading, UI element interaction, and gesture control.
 class ScreenAutomationService {
-  static const _channel = MethodChannel('com.privateagent/accessibility');
+  static const _channel = MethodChannel('com.doom/accessibility');
   static const _channelTimeout = Duration(seconds: 2);
 
   static Future<T?> _invoke<T>(String method, [Map<String, Object?>? arguments]) {

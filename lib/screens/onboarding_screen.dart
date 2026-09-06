@@ -160,7 +160,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       if (provider == 'gemini') {
         _baseUrlController.text = 'https://generativelanguage.googleapis.com/v1beta/openai';
         _modelController.text = 'gemini-2.0-flash';
-      } else if (provider == 'claude') {
+      } else if (provider == 'anthropic') {
         _baseUrlController.text = 'https://api.anthropic.com/v1';
         _modelController.text = 'claude-sonnet-4-20250514';
       } else if (provider == 'openai') {
@@ -173,11 +173,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         _baseUrlController.text = AiService.nvidiaBaseUrl;
         _modelController.text = AiService.nvidiaDefaultModel;
       } else if (provider == 'ollama') {
-        _baseUrlController.text = 'http://10.0.2.2:11434/v1';
+        _baseUrlController.text = 'http://localhost:11434/v1';
         _modelController.text = 'gemma2';
       } else if (provider == 'local') {
-        _baseUrlController.text = 'http://10.0.2.2:1234/v1';
-        _modelController.text = 'qwen2.5-7b-instruct';
+        _baseUrlController.text = 'http://192.168.1.100:8080/v1';
+        _modelController.text = 'default';
+      } else if (provider == 'custom') {
+        _baseUrlController.clear();
+        _modelController.clear();
       } else {
         _baseUrlController.clear();
         _modelController.clear();
@@ -1137,8 +1140,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 ),
                 const SizedBox(width: 10),
                 _buildProviderCard(
-                  'claude',
-                  'Claude',
+                  'anthropic',
+                  'Anthropic',
                   Icons.psychology_alt_rounded,
                   isDark,
                 ),
@@ -1169,14 +1172,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 _buildProviderCard(
                   'local',
                   'Local Server',
-                  Icons.dns_rounded,
+                  Icons.computer,
                   isDark,
                 ),
                 const SizedBox(width: 10),
                 _buildProviderCard(
                   'custom',
                   'Custom',
-                  Icons.settings_suggest_rounded,
+                  Icons.tune,
                   isDark,
                 ),
               ],

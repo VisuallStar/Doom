@@ -4,7 +4,7 @@ import 'contacts_service.dart';
 
 class CommunicationService {
   final ContactsService _contactsService = ContactsService();
-  static const _smsChannel = MethodChannel('com.privateagent/sms');
+  static const _smsChannel = MethodChannel('com.doom/sms');
 
   /// Make a phone call. Can accept a name or number.
   Future<String> makeCall({String? contactName, String? phoneNumber}) async {

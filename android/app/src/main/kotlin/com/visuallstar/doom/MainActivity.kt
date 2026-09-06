@@ -1,4 +1,4 @@
-package com.orailnoor.privateagent
+package com.visuallstar.doom
 
 import android.content.Intent
 import android.provider.Settings
@@ -17,8 +17,8 @@ import android.hardware.camera2.CameraManager
 import android.content.Context
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "com.privateagent/accessibility"
-    private val EVENT_CHANNEL = "com.privateagent/accessibility_events"
+    private val CHANNEL = "com.doom/accessibility"
+    private val EVENT_CHANNEL = "com.doom/accessibility_events"
     private var eventSink: EventChannel.EventSink? = null
     private var overlayView: View? = null
 
@@ -26,7 +26,7 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
 
         // Torch and system control channel
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.privateagent/torch").setMethodCallHandler { call, result ->
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.doom/torch").setMethodCallHandler { call, result ->
             when (call.method) {
                 "toggleTorch" -> {
                     val enabled = call.argument<Boolean>("enabled") ?: false
@@ -133,7 +133,7 @@ class MainActivity : FlutterActivity() {
         )
 
         // SMS direct send channel
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.privateagent/sms").setMethodCallHandler { call, result ->
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.doom/sms").setMethodCallHandler { call, result ->
             when (call.method) {
                 "sendSms" -> {
                     val phoneNumber = call.argument<String>("phoneNumber") ?: ""
@@ -171,7 +171,7 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         fun registerAccessibilityChannel(flutterEngine: FlutterEngine, context: android.content.Context) {
-            MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.privateagent/accessibility")
+            MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.doom/accessibility")
                 .setMethodCallHandler { call, result ->
                     android.util.Log.d("PrivateAgentKotlin", "Received method call: ${call.method}")
                     when (call.method) {
