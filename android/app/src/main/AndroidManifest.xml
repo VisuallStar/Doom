@@ -74,6 +74,12 @@
         </intent>
         <package android:name="com.google.android.youtube" />
         <package android:name="com.whatsapp" />
+        <package android:name="com.instagram.android" />
+        <package android:name="com.snapchat.android" />
+        <intent>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.LAUNCHER"/>
+        </intent>
     </queries>
 
     <application
@@ -145,5 +151,16 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        
+        <!-- FileProvider for safe image sharing -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

@@ -10,6 +10,7 @@ import 'shizuku_service.dart';
 import 'screen_automation_service.dart';
 import 'task_executor.dart';
 import 'ai_service.dart';
+import 'device_actions_service.dart';
 
 class ActionHandler {
   final AppLauncherService _appLauncher = AppLauncherService();
@@ -20,6 +21,7 @@ class ActionHandler {
   final SystemControlService _systemControl = SystemControlService();
   final ShizukuService _shizuku = ShizukuService();
   final ScreenAutomationService _screenAutomation = ScreenAutomationService();
+  final DeviceActionsService deviceActions = DeviceActionsService();
 
   ShizukuService get shizuku => _shizuku;
   ScreenAutomationService get screenAutomation => _screenAutomation;
@@ -256,6 +258,44 @@ class ActionHandler {
           );
           result = await _currentExecutor!.executeTask(goal);
           _currentExecutor = null;
+          break;
+
+        case 'share_image':
+          final path = action.params['path'] as String? ?? '';
+          final app = action.params['app'] as String?;
+          String? pkg;
+          if (app != null) {
+            final lower = app.toLowerCase();
+            if (lower.contains('whatsapp')) pkg = 'com.whatsapp';
+            else if (lower.contains('instagram')) pkg = 'com.instagram.android';
+            else if (lower.contains('snapchat')) pkg = 'com.snapchat.android';
+            else if (lower.contains('telegram')) pkg = 'org.telegram.messenger';
+          }
+          result = await deviceActions.shareImage(path, packageName: pkg);
+          break;
+
+        case 'open_whatsapp':
+          result = await deviceActions.openWhatsApp(
+            number: action.params['number'] as String?,
+            message: action.params['message'] as String?,
+          );
+          break;
+
+        case 'open_instagram':
+          result = await deviceActions.openInstagram(
+            username: action.params['username'] as String?,
+          );
+          break;
+
+        case 'open_snapchat':
+          result = await deviceActions.openSnapchat(
+            username: action.params['username'] as String?,
+          );
+          break;
+
+        case 'media_control':
+          final actionString = action.params['action'] as String? ?? 'play_pause';
+          result = await deviceActions.mediaControl(actionString);
           break;
 
         default:

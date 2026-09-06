@@ -136,6 +136,11 @@ INSTANT ACTIONS (no screen interaction needed):
 - delete_note: {"title": "Shopping List"} - Deletes a note
 - read_screen: {}
 - press_back: {}
+- share_image: {"path": "/path/to/image.jpg", "app": "whatsapp"} - Share image to app
+- open_whatsapp: {"number": "+1234", "message": "Hi"} - Open WhatsApp chat
+- open_instagram: {"username": "johndoe"} - Open Instagram profile
+- open_snapchat: {"username": "johndoe"} - Open Snapchat profile  
+- media_control: {"action": "play_pause"} - Control media (play_pause/next/previous/stop)
 
 MULTI-STEP (needs screen interaction):
 - execute_task: {"goal": "full description"} - Auto opens apps, clicks, types, scrolls
@@ -149,6 +154,8 @@ RULES:
 6. Reminders → ALWAYS use set_reminder. NEVER use execute_task for reminders.
 7. DO NOT open apps unnecessarily. If the user just asks a question, respond with text.
 8. Use execute_task ONLY when the task needs screen interaction (navigating menus, clicking buttons). Always include the app name in the goal.
+9. Media controls (play, pause, next, previous) → ALWAYS use media_control. NEVER use execute_task.
+10. WhatsApp, Instagram, Snapchat → Use dedicated actions. Only use execute_task for complex multi-step interactions.
 
 Examples:
 - "play music on youtube" → youtube_play {"query": "music"}
@@ -165,6 +172,11 @@ Examples:
 - "what's the time" → get_datetime
 - "open camera" → open_app {"app_name": "Camera"}
 - "make youtube fullscreen" → youtube_fullscreen {}
+- "pause music" → media_control {"action": "play_pause"}
+- "next song" → media_control {"action": "next"}
+- "open john on instagram" → open_instagram {"username": "john"}
+- "message mom on whatsapp" → open_whatsapp {"number": "", "message": ""} then execute_task
+- "share screenshot to whatsapp" → take_screenshot, then share_image
 
 For questions/chat, respond with plain text. Do NOT use any action.
 ''';

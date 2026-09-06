@@ -15,6 +15,8 @@ import android.widget.Button
 import android.net.Uri
 import android.hardware.camera2.CameraManager
 import android.content.Context
+import android.media.AudioManager
+import android.provider.AlarmClock
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.doom/accessibility"
@@ -160,6 +162,190 @@ class MainActivity : FlutterActivity() {
                             android.util.Log.e("PrivateAgent", "SMS send error: ${e.message}")
                             result.success(false)
                         }
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        // Device actions channel for direct native control
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.doom/device_actions").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "shareImage" -> {
+                    val path = call.argument<String>("path") ?: ""
+                    val packageName = call.argument<String>("package") ?: ""
+                    try {
+                        val file = java.io.File(path)
+                        val uri = androidx.core.content.FileProvider.getUriForFile(
+                            this, "${this.packageName}.fileprovider", file)
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "image/*"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            if (packageName.isNotEmpty()) setPackage(packageName)
+                        }
+                        startActivity(Intent.createChooser(intent, "Share via").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        result.success("Sharing image")
+                    } catch (e: Exception) {
+                        result.error("SHARE_ERROR", "Share error: ${e.message}", null)
+                    }
+                }
+                "makeDirectCall" -> {
+                    val number = call.argument<String>("number") ?: ""
+                    try {
+                        val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$number"))
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        result.success("Calling $number")
+                    } catch (e: Exception) {
+                        result.error("CALL_ERROR", "Call error: ${e.message}", null)
+                    }
+                }
+                "openWhatsApp" -> {
+                    val number = call.argument<String>("number") ?: ""
+                    val message = call.argument<String>("message") ?: ""
+                    try {
+                        val url = if (number.isNotEmpty()) {
+                            "https://api.whatsapp.com/send?phone=$number&text=${Uri.encode(message)}"
+                        } else {
+                            "https://api.whatsapp.com/send?text=${Uri.encode(message)}"
+                        }
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        intent.setPackage("com.whatsapp")
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        result.success("Opening WhatsApp")
+                    } catch (e: Exception) {
+                        result.error("WA_ERROR", "WhatsApp error: ${e.message}", null)
+                    }
+                }
+                "openInstagram" -> {
+                    val username = call.argument<String>("username") ?: ""
+                    try {
+                        val uri = if (username.isNotEmpty()) "https://www.instagram.com/$username/" else "https://www.instagram.com/"
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
+                        intent.setPackage("com.instagram.android")
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        result.success("Opening Instagram")
+                    } catch (e: Exception) {
+                        val fallback = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.instagram.com/$username/"))
+                        fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(fallback)
+                        result.success("Opening Instagram in browser")
+                    }
+                }
+                "openSnapchat" -> {
+                    val username = call.argument<String>("username") ?: ""
+                    try {
+                        val intent = if (username.isNotEmpty()) {
+                            Intent(Intent.ACTION_VIEW, Uri.parse("https://www.snapchat.com/add/$username"))
+                        } else {
+                            packageManager.getLaunchIntentForPackage("com.snapchat.android")
+                                ?: Intent(Intent.ACTION_VIEW, Uri.parse("https://www.snapchat.com/"))
+                        }
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        result.success("Opening Snapchat")
+                    } catch (e: Exception) {
+                        result.error("SNAP_ERROR", "Snapchat error: ${e.message}", null)
+                    }
+                }
+                "mediaControl" -> {
+                    val action = call.argument<String>("action") ?: "play_pause"
+                    try {
+                        val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                        val keyCode = when (action) {
+                            "play", "pause", "play_pause" -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                            "next" -> android.view.KeyEvent.KEYCODE_MEDIA_NEXT
+                            "previous" -> android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
+                            "stop" -> android.view.KeyEvent.KEYCODE_MEDIA_STOP
+                            else -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                        }
+                        am.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode))
+                        am.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode))
+                        result.success("Media $action executed")
+                    } catch (e: Exception) {
+                        result.error("MEDIA_ERROR", "Media control error: ${e.message}", null)
+                    }
+                }
+                "setAlarmDirect" -> {
+                    val hour = call.argument<Int>("hour") ?: 0
+                    val minute = call.argument<Int>("minute") ?: 0
+                    val label = call.argument<String>("label") ?: ""
+                    try {
+                        val intent = Intent(AlarmClock.ACTION_SET_ALARM).apply {
+                            putExtra(AlarmClock.EXTRA_HOUR, hour)
+                            putExtra(AlarmClock.EXTRA_MINUTES, minute)
+                            if (label.isNotEmpty()) putExtra(AlarmClock.EXTRA_MESSAGE, label)
+                            putExtra(AlarmClock.EXTRA_SKIP_UI, true)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                        result.success("Alarm set for ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}")
+                    } catch (e: Exception) {
+                        result.error("ALARM_ERROR", "Alarm error: ${e.message}", null)
+                    }
+                }
+                "setTimerDirect" -> {
+                    val seconds = call.argument<Int>("seconds") ?: 60
+                    val label = call.argument<String>("label") ?: ""
+                    try {
+                        val intent = Intent(AlarmClock.ACTION_SET_TIMER).apply {
+                            putExtra(AlarmClock.EXTRA_LENGTH, seconds)
+                            if (label.isNotEmpty()) putExtra(AlarmClock.EXTRA_MESSAGE, label)
+                            putExtra(AlarmClock.EXTRA_SKIP_UI, true)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                        result.success("Timer set for ${seconds / 60}m ${seconds % 60}s")
+                    } catch (e: Exception) {
+                        result.error("TIMER_ERROR", "Timer error: ${e.message}", null)
+                    }
+                }
+                "setBrightnessNative" -> {
+                    val value = call.argument<Int>("value") ?: 128
+                    try {
+                        if (Settings.System.canWrite(this)) {
+                            Settings.System.putInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, value.coerceIn(0, 255))
+                            result.success("Brightness set to ${value * 100 / 255}%")
+                        } else {
+                            val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
+                            intent.data = Uri.parse("package:$packageName")
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                            result.error("PERMISSION_NEEDED", "Please allow write settings permission", null)
+                        }
+                    } catch (e: Exception) {
+                        result.error("BRIGHTNESS_ERROR", "Brightness error: ${e.message}", null)
+                    }
+                }
+                "setVolumeNative" -> {
+                    val level = call.argument<Int>("level") ?: 50
+                    try {
+                        val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                        val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                        val vol = (level * maxVol / 100).coerceIn(0, maxVol)
+                        am.setStreamVolume(AudioManager.STREAM_MUSIC, vol, AudioManager.FLAG_SHOW_UI)
+                        result.success("Volume set to $level%")
+                    } catch (e: Exception) {
+                        result.error("VOLUME_ERROR", "Volume error: ${e.message}", null)
+                    }
+                }
+                "youtubeSearch" -> {
+                    val query = call.argument<String>("query") ?: ""
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(query)))
+                        intent.setPackage("com.google.android.youtube")
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        result.success("Searching YouTube for $query")
+                    } catch (e: Exception) {
+                        val fallback = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(query)))
+                        fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(fallback)
+                        result.success("Searching YouTube for $query (browser)")
                     }
                 }
                 else -> result.notImplemented()
