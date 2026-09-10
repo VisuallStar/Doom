@@ -210,9 +210,21 @@ class ActionHandler {
           break;
 
         case 'youtube_play':
-          result = await _systemControl.youtubePlay(
-            action.params['query'] as String? ?? '',
+          final query = action.params['query'] as String? ?? '';
+          if (aiService == null) {
+            result = await _systemControl.youtubePlay(query);
+            break;
+          }
+          await _systemControl.youtubeSearch(query);
+          _currentExecutor = TaskExecutor(
+            aiService: aiService,
+            screenService: _screenAutomation,
+            appLauncher: _appLauncher,
+            shizukuService: _shizuku,
+            onProgress: onProgress,
           );
+          result = await _currentExecutor!.executeTask("Wait for YouTube to load, then click the first video in the search results to play it.");
+          _currentExecutor = null;
           break;
 
         // ─── Screen Automation Actions ────────────────────────

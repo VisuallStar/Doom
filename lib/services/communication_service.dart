@@ -23,12 +23,9 @@ class CommunicationService {
     }
 
     try {
-      final uri = Uri(scheme: 'tel', path: number);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-        return 'Calling $number${contactName != null ? ' ($contactName)' : ''}...';
-      }
-      return 'Cannot make calls on this device.';
+      final channel = MethodChannel('com.doom/device_actions');
+      final result = await channel.invokeMethod<String>('makeDirectCall', {'number': number});
+      return result ?? 'Calling $number${contactName != null ? ' ($contactName)' : ''}...';
     } catch (e) {
       return 'Error making call: $e';
     }
