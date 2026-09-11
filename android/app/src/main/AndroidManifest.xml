@@ -85,7 +85,7 @@
     </queries>
 
     <application
-        android:label="PrivateAgent"
+        android:label="Doom"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
@@ -114,6 +114,8 @@
             </intent-filter>
         </receiver>
 
+        <receiver android:name=".ReminderReceiver" android:exported="false" />
+
         <!-- Provide required meta-data for flutter -->
 
         <!-- Shizuku provider (optional - only works when Shizuku is installed) -->
@@ -129,7 +131,7 @@
         <service
             android:name=".AgentAccessibilityService"
             android:exported="true"
-            android:label="PrivateAgent Screen Control"
+            android:label="Doom Screen Control"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
@@ -143,7 +145,7 @@
         <service
             android:name=".AgentNotificationListener"
             android:exported="true"
-            android:label="PrivateAgent Notification Access"
+            android:label="Doom Notification Access"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />

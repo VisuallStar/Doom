@@ -5,17 +5,23 @@ import 'package:flutter/services.dart';
 class DeviceActionsService {
   static const _channel = MethodChannel('com.doom/device_actions');
 
+  static const _torchChannel = MethodChannel('com.doom/torch');
+
   Future<String> toggleFlash(bool on) async {
     try {
-      final result = await _channel.invokeMethod<String>('toggleFlash', {'state': on ? 'on' : 'off'});
-      return result ?? 'Flashlight toggled';
+      final result = await _torchChannel.invokeMethod<bool>('toggleTorch', {'enabled': on});
+      return result == true ? (on ? 'Flashlight turned on' : 'Flashlight turned off') : 'Could not control flashlight';
     } catch (e) { return 'Error: $e'; }
   }
 
   Future<String> setScreenTimeout(int seconds) async {
     try {
-      final result = await _channel.invokeMethod<String>('setScreenTimeout', {'seconds': seconds});
-      return result ?? 'Screen timeout set';
+      final result = await _torchChannel.invokeMethod<bool>('setScreenTimeout', {'seconds': seconds});
+      if (result == true) {
+        final display = seconds >= 60 ? '${seconds ~/ 60} minute(s)' : '$seconds seconds';
+        return 'Screen timeout set to $display';
+      }
+      return 'Could not set screen timeout. Grant WRITE_SETTINGS permission.';
     } catch (e) { return 'Error: $e'; }
   }
 
@@ -112,6 +118,13 @@ class DeviceActionsService {
     try {
       final result = await _channel.invokeMethod<String>('openAppByName', {'name': name});
       return result ?? 'App opened';
+    } catch (e) { return 'Error: $e'; }
+  }
+
+  Future<String> youtubePlay(String query) async {
+    try {
+      final result = await _channel.invokeMethod<String>('youtubePlay', {'query': query});
+      return result ?? 'Playing on YouTube';
     } catch (e) { return 'Error: $e'; }
   }
 }

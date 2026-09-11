@@ -193,11 +193,28 @@ class MainActivity : FlutterActivity() {
                 }
                 "makeDirectCall" -> {
                     val number = call.argument<String>("number") ?: ""
+                    if (number.isEmpty()) {
+                        result.error("CALL_ERROR", "No phone number provided", null)
+                        return@setMethodCallHandler
+                    }
                     try {
-                        val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$number"))
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        startActivity(intent)
-                        result.success("Calling $number")
+                        // Check runtime CALL_PHONE permission
+                        if (androidx.core.content.ContextCompat.checkSelfPermission(
+                                this, android.Manifest.permission.CALL_PHONE
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        ) {
+                            // Direct call — no dialer confirmation needed
+                            val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$number"))
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                            result.success("Calling $number")
+                        } else {
+                            // Fallback: open dialer with number pre-filled (no permission needed)
+                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number"))
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                            result.success("Opening dialer for $number (tap call to connect)")
+                        }
                     } catch (e: Exception) {
                         result.error("CALL_ERROR", "Call error: ${e.message}", null)
                     }
@@ -304,6 +321,71 @@ class MainActivity : FlutterActivity() {
                         result.error("TIMER_ERROR", "Timer error: ${e.message}", null)
                     }
                 }
+                "setReminderDirect" -> {
+                    val title = call.argument<String>("title") ?: "Reminder"
+                    val description = call.argument<String>("description") ?: ""
+                    val year = call.argument<Int>("year") ?: 0
+                    val month = call.argument<Int>("month") ?: 0
+                    val day = call.argument<Int>("day") ?: 0
+                    val hour = call.argument<Int>("hour") ?: 9
+                    val minute = call.argument<Int>("minute") ?: 0
+                    try {
+                        // Schedule a local notification via AlarmManager
+                        val cal = java.util.Calendar.getInstance().apply {
+                            set(java.util.Calendar.YEAR, year)
+                            set(java.util.Calendar.MONTH, month - 1) // Calendar months are 0-based
+                            set(java.util.Calendar.DAY_OF_MONTH, day)
+                            set(java.util.Calendar.HOUR_OF_DAY, hour)
+                            set(java.util.Calendar.MINUTE, minute)
+                            set(java.util.Calendar.SECOND, 0)
+                        }
+                        val intent = Intent(this, ReminderReceiver::class.java).apply {
+                            putExtra("text", "$title${if (description.isNotEmpty()) ": $description" else ""}")
+                        }
+                        val pendingIntent = android.app.PendingIntent.getBroadcast(
+                            this,
+                            System.currentTimeMillis().toInt(),
+                            intent,
+                            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                        )
+                        val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                            alarmManager.setExactAndAllowWhileIdle(
+                                android.app.AlarmManager.RTC_WAKEUP,
+                                cal.timeInMillis,
+                                pendingIntent
+                            )
+                        } else {
+                            alarmManager.setExact(
+                                android.app.AlarmManager.RTC_WAKEUP,
+                                cal.timeInMillis,
+                                pendingIntent
+                            )
+                        }
+
+                        // Also try to create a calendar event
+                        try {
+                            val calIntent = Intent(Intent.ACTION_INSERT).apply {
+                                data = android.net.Uri.parse("content://com.android.calendar/events")
+                                putExtra("beginTime", cal.timeInMillis)
+                                putExtra("endTime", cal.timeInMillis + 30 * 60 * 1000)
+                                putExtra("title", title)
+                                putExtra("description", description)
+                                putExtra("hasAlarm", 1)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(calIntent)
+                        } catch (_: Exception) {
+                            // Calendar not available — notification will still fire
+                        }
+
+                        val dateStr = "${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}"
+                        val timeStr = "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+                        result.success("Reminder set: \"$title\" on $dateStr at $timeStr")
+                    } catch (e: Exception) {
+                        result.error("REMINDER_ERROR", "Reminder error: ${e.message}", null)
+                    }
+                }
                 "setBrightnessNative" -> {
                     val value = call.argument<Int>("value") ?: 128
                     try {
@@ -346,6 +428,33 @@ class MainActivity : FlutterActivity() {
                         fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         startActivity(fallback)
                         result.success("Searching YouTube for $query (browser)")
+                    }
+                }
+                "youtubePlay" -> {
+                    val query = call.argument<String>("query") ?: ""
+                    try {
+                        // Use ACTION_SEARCH on YouTube app — this auto-plays the first result
+                        val intent = Intent(Intent.ACTION_SEARCH)
+                        intent.setPackage("com.google.android.youtube")
+                        intent.putExtra("query", query)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        result.success("Playing \"$query\" on YouTube")
+                    } catch (e: Exception) {
+                        try {
+                            // Fallback: open search results URL in YouTube app
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(query)))
+                            intent.setPackage("com.google.android.youtube")
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                            result.success("Searching YouTube for $query (auto-play unavailable)")
+                        } catch (e2: Exception) {
+                            // Final fallback: browser
+                            val fallback = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(query)))
+                            fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(fallback)
+                            result.success("Playing \"$query\" on YouTube (browser)")
+                        }
                     }
                 }
                 "openAppByName" -> {
@@ -596,7 +705,7 @@ class MainActivity : FlutterActivity() {
                                 val sb = StringBuilder()
                                 synchronized(AgentAccessibilityService.recentNotifications) {
                                     if (AgentAccessibilityService.recentNotifications.isEmpty()) {
-                                        result.success("No notifications found. Please enable 'Notification Access' for PrivateAgent in Settings > Apps > Special access > Notification access.")
+                                        result.success("No notifications found. Please enable 'Notification Access' for Doom in Settings > Apps > Special access > Notification access.")
                                         return@setMethodCallHandler
                                     }
                                     for (entry in AgentAccessibilityService.recentNotifications) {
@@ -610,36 +719,6 @@ class MainActivity : FlutterActivity() {
                                     }
                                 }
                                 result.success(sb.toString().trim())
-                            }
-                        }
-
-                        "takeScreenshot" -> {
-                            val service = AgentAccessibilityService.instance
-                            if (service == null) {
-                                result.success("Accessibility service is not running.")
-                            } else {
-                                try {
-                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                                        service.takeScreenshot(
-                                            android.view.Display.DEFAULT_DISPLAY,
-                                            context.mainExecutor,
-                                            object : android.accessibilityservice.AccessibilityService.TakeScreenshotCallback {
-                                                override fun onSuccess(screenshot: android.accessibilityservice.AccessibilityService.ScreenshotResult) {
-                                                    result.success("Screenshot captured successfully.")
-                                                }
-                                                override fun onFailure(errorCode: Int) {
-                                                    result.success("Screenshot failed with error code: $errorCode")
-                                                }
-                                            }
-                                        )
-                                    } else {
-                                        // Fallback for older Android versions - perform global action
-                                        service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_TAKE_SCREENSHOT)
-                                        result.success("Screenshot triggered.")
-                                    }
-                                } catch (e: Exception) {
-                                    result.success("Error taking screenshot: ${e.message}")
-                                }
                             }
                         }
 

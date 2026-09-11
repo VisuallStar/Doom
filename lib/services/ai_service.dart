@@ -103,7 +103,7 @@ class AiService {
   final List<Map<String, String>> _conversationHistory = [];
 
   static const String _systemPrompt = '''
-You are PrivateAgent, a helpful AI assistant on an Android phone.
+You are Doom, a super fast AI assistant on an Android phone.
 
 For device actions, respond with ONLY a JSON object:
 {"action": "action_name", "params": {"key": "value"}, "response": "What you say"}
@@ -182,7 +182,7 @@ For questions/chat, respond with plain text. Do NOT use any action.
 ''';
 
   static const String _chatSystemPrompt = '''
-You are PrivateAgent, a helpful conversational AI assistant. 
+You are Doom, a super fast conversational AI assistant. 
 Provide direct, natural, and friendly text responses. You cannot perform device actions or run tools. 
 Answer questions, explain concepts, brainstorm, write emails/messages, and chat with the user in plain text or markdown format.
 ''';

@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart';
-import 'package:android_intent_plus/android_intent.dart';
 
 class AlarmService {
   static const _channel = MethodChannel('com.doom/device_actions');
@@ -31,7 +30,7 @@ class AlarmService {
     }
   }
 
-  /// Set a reminder using the calendar
+  /// Set a reminder using native AlarmManager + Calendar event (no screen control)
   Future<String> setReminder({
     required String title,
     String? description,
@@ -42,21 +41,16 @@ class AlarmService {
     required int minute,
   }) async {
     try {
-      final dateTime = DateTime(year, month, day, hour, minute);
-      final endTime = dateTime.add(const Duration(minutes: 30));
-      final intent = AndroidIntent(
-        action: 'android.intent.action.INSERT',
-        data: 'content://com.android.calendar/events',
-        arguments: {
-          'beginTime': dateTime.millisecondsSinceEpoch,
-          'endTime': endTime.millisecondsSinceEpoch,
-          'title': title,
-          'description': description ?? '',
-          'hasAlarm': 1,
-        },
-      );
-      await intent.launch();
-      return 'Reminder set: "$title" on ${day.toString().padLeft(2, '0')}/${month.toString().padLeft(2, '0')} at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+      final result = await _channel.invokeMethod<String>('setReminderDirect', {
+        'title': title,
+        'description': description ?? '',
+        'year': year,
+        'month': month,
+        'day': day,
+        'hour': hour,
+        'minute': minute,
+      });
+      return result ?? 'Reminder set: "$title" on ${day.toString().padLeft(2, '0')}/${month.toString().padLeft(2, '0')} at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
     } catch (e) {
       return 'Error setting reminder: $e';
     }

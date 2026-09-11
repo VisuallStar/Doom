@@ -11,10 +11,10 @@ class CommunicationService {
     String? number = phoneNumber;
 
     // If contact name given, look up the number
-    if (contactName != null && number == null) {
+    if (contactName != null && contactName.isNotEmpty && (number == null || number.isEmpty)) {
       number = await _contactsService.getPhoneNumber(contactName);
       if (number == null) {
-        return 'Could not find contact "$contactName". Try searching contacts first.';
+        return 'Could not find contact "$contactName". Try providing the phone number directly.';
       }
     }
 
@@ -22,10 +22,13 @@ class CommunicationService {
       return 'No phone number provided.';
     }
 
+    // Clean the number — keep only digits, +, and *
+    final cleanNumber = number.replaceAll(RegExp(r'[^\d+*#]'), '');
+
     try {
       final channel = MethodChannel('com.doom/device_actions');
-      final result = await channel.invokeMethod<String>('makeDirectCall', {'number': number});
-      return result ?? 'Calling $number${contactName != null ? ' ($contactName)' : ''}...';
+      final result = await channel.invokeMethod<String>('makeDirectCall', {'number': cleanNumber});
+      return result ?? 'Calling $cleanNumber${contactName != null ? ' ($contactName)' : ''}...';
     } catch (e) {
       return 'Error making call: $e';
     }

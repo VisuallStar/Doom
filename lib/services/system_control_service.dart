@@ -103,9 +103,15 @@ class SystemControlService {
     try {
       final result = await _accessibilityChannel.invokeMethod<String>('takeScreenshot');
       if (result != null && result.isNotEmpty) {
-        return 'Screenshot captured successfully.';
+        // The native side saves to gallery via MediaStore AND returns Base64
+        return 'Screenshot captured and saved to gallery.';
       }
       return 'Could not capture screenshot. Accessibility service may not be running.';
+    } on PlatformException catch (e) {
+      if (e.code == 'SERVICE_NOT_RUNNING') {
+        return 'Screenshot failed: Accessibility service is not running. Please enable it in Settings.';
+      }
+      return 'Screenshot failed: ${e.message}';
     } catch (e) {
       return 'Error taking screenshot: $e';
     }
@@ -143,12 +149,11 @@ class SystemControlService {
     }
   }
 
-  /// Play a YouTube video by search query — uses native intent for YouTube app
+  /// Play a YouTube video by search query — uses native ACTION_SEARCH intent for auto-play
   Future<String> youtubePlay(String query) async {
     try {
-      // Use vnd.youtube scheme for auto-play via native channel
       final channel = MethodChannel('com.doom/device_actions');
-      final result = await channel.invokeMethod<String>('youtubeSearch', {'query': query});
+      final result = await channel.invokeMethod<String>('youtubePlay', {'query': query});
       return result ?? 'Playing "$query" on YouTube.';
     } catch (_) {
       try {
