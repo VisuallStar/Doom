@@ -191,6 +191,26 @@ class MainActivity : FlutterActivity() {
                         result.error("SHARE_ERROR", "Share error: ${e.message}", null)
                     }
                 }
+                "shareText" -> {
+                    val text = call.argument<String>("text") ?: ""
+                    val packageName = call.argument<String>("packageName")
+                    try {
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, text)
+                            if (packageName != null) {
+                                setPackage(packageName)
+                            }
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        startActivity(Intent.createChooser(intent, "Share via").apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        })
+                        result.success("Shared text successfully")
+                    } catch (e: Exception) {
+                        result.error("SHARE_ERROR", e.message, null)
+                    }
+                }
                 "makeDirectCall" -> {
                     val number = call.argument<String>("number") ?: ""
                     if (number.isEmpty()) {
@@ -418,42 +438,48 @@ class MainActivity : FlutterActivity() {
                 "youtubeSearch" -> {
                     val query = call.argument<String>("query") ?: ""
                     try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(query)))
-                        intent.setPackage("com.google.android.youtube")
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        val intent = Intent(Intent.ACTION_SEARCH).apply {
+                            setPackage("com.google.android.youtube")
+                            putExtra("query", query)
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
                         startActivity(intent)
-                        result.success("Searching YouTube for $query")
+                        result.success("Searching YouTube for '$query'")
                     } catch (e: Exception) {
-                        val fallback = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(query)))
-                        fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        startActivity(fallback)
-                        result.success("Searching YouTube for $query (browser)")
+                        try {
+                            val searchUrl = "https://www.youtube.com/results?search_query=${java.net.URLEncoder.encode(query, "UTF-8")}"
+                            val webIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(searchUrl)).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(webIntent)
+                            result.success("Opening YouTube search for '$query'")
+                        } catch (e2: Exception) {
+                            result.error("YOUTUBE_ERROR", e2.message, null)
+                        }
                     }
                 }
                 "youtubePlay" -> {
                     val query = call.argument<String>("query") ?: ""
                     try {
-                        // Use ACTION_SEARCH on YouTube app — this auto-plays the first result
-                        val intent = Intent(Intent.ACTION_SEARCH)
-                        intent.setPackage("com.google.android.youtube")
-                        intent.putExtra("query", query)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        // Try YouTube search intent with auto-play
+                        val intent = Intent(Intent.ACTION_SEARCH).apply {
+                            setPackage("com.google.android.youtube")
+                            putExtra("query", query)
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
                         startActivity(intent)
-                        result.success("Playing \"$query\" on YouTube")
+                        result.success("Playing '$query' on YouTube")
                     } catch (e: Exception) {
                         try {
-                            // Fallback: open search results URL in YouTube app
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(query)))
-                            intent.setPackage("com.google.android.youtube")
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            startActivity(intent)
-                            result.success("Searching YouTube for $query (auto-play unavailable)")
+                            // Fallback: open YouTube search URL
+                            val searchUrl = "https://www.youtube.com/results?search_query=${java.net.URLEncoder.encode(query, "UTF-8")}"
+                            val webIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(searchUrl)).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(webIntent)
+                            result.success("Opening YouTube search for '$query'")
                         } catch (e2: Exception) {
-                            // Final fallback: browser
-                            val fallback = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(query)))
-                            fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            startActivity(fallback)
-                            result.success("Playing \"$query\" on YouTube (browser)")
+                            result.error("YOUTUBE_ERROR", e2.message, null)
                         }
                     }
                 }
@@ -665,6 +691,28 @@ class MainActivity : FlutterActivity() {
                                 result.error("SERVICE_NOT_RUNNING", "Accessibility service is not running", null)
                             } else {
                                 result.success(service.pressBack())
+                            }
+                        }
+
+                        "longPressAt" -> {
+                            val x = (call.argument<Number>("x") ?: 0).toFloat()
+                            val y = (call.argument<Number>("y") ?: 0).toFloat()
+                            val svc = AgentAccessibilityService.instance
+                            if (svc != null) {
+                                svc.longPressAt(x, y)
+                                result.success(true)
+                            } else {
+                                result.error("SERVICE_NOT_RUNNING", "Accessibility service not running", null)
+                            }
+                        }
+
+                        "openRecents" -> {
+                            val svc = AgentAccessibilityService.instance
+                            if (svc != null) {
+                                svc.openRecents()
+                                result.success(true)
+                            } else {
+                                result.error("SERVICE_NOT_RUNNING", "Accessibility service not running", null)
                             }
                         }
 

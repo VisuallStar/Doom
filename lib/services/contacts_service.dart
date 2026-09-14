@@ -1,16 +1,34 @@
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 class ContactsService {
+  static List<Contact>? _cachedContacts;
+  static DateTime? _cacheTime;
+  static const _cacheDuration = Duration(minutes: 5);
+
+  Future<List<Contact>> _getContacts() async {
+    if (_cachedContacts != null && _cacheTime != null &&
+        DateTime.now().difference(_cacheTime!) < _cacheDuration) {
+      return _cachedContacts!;
+    }
+    if (await FlutterContacts.requestPermission()) {
+      _cachedContacts = await FlutterContacts.getContacts(
+        withProperties: true,
+        withPhoto: false,
+      );
+      _cacheTime = DateTime.now();
+      return _cachedContacts!;
+    }
+    return [];
+  }
+
+  static void clearCache() {
+    _cachedContacts = null;
+    _cacheTime = null;
+  }
+
   /// Search contacts by name. Returns formatted results.
   Future<List<Contact>> searchContacts(String query) async {
-    if (!await FlutterContacts.requestPermission()) {
-      return [];
-    }
-
-    final contacts = await FlutterContacts.getContacts(
-      withProperties: true,
-      withPhoto: false,
-    );
+    final contacts = await _getContacts();
 
     final lowerQuery = query.toLowerCase();
     return contacts.where((c) {

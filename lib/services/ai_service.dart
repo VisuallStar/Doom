@@ -120,6 +120,7 @@ INSTANT ACTIONS (no screen interaction needed):
 - set_brightness: {"level": 50} (0-100)
 - set_screen_timeout: {"seconds": 120} (15/30/60/120/300/600)
 - get_datetime: {}
+- get_news: {"action": "get_news", "params": {"topic": "optional topic"}, "response": "..."}
 - toggle_torch: {"enabled": true}
 - whatsapp_call: {"contact_name": "John"}
 - read_notifications: {}
@@ -127,7 +128,7 @@ INSTANT ACTIONS (no screen interaction needed):
 - take_screenshot: {}
 - screen_time: {}
 - youtube_search: {"query": "funny cats"} - Opens YouTube search
-- youtube_play: {"query": "lofi music"} - Opens YouTube and auto-plays
+- youtube_play: {"action": "youtube_play", "params": {"query": "song or video name"}, "response": "Playing on YouTube..."}
 - youtube_fullscreen: {} - Makes current YouTube video fullscreen
 - create_note: {"title": "Shopping List", "content": "Milk, eggs, bread"} - Creates a note in background
 - append_note: {"title": "Shopping List", "content": "Butter"} - Appends to an existing note
@@ -137,6 +138,7 @@ INSTANT ACTIONS (no screen interaction needed):
 - read_screen: {}
 - press_back: {}
 - share_image: {"path": "/path/to/image.jpg", "app": "whatsapp"} - Share image to app
+- share_text: {"action": "share_text", "params": {"text": "text to share", "app": "optional target app"}, "response": "..."}
 - open_whatsapp: {"number": "+1234", "message": "Hi"} - Open WhatsApp chat
 - open_instagram: {"username": "johndoe"} - Open Instagram profile
 - open_snapchat: {"username": "johndoe"} - Open Snapchat profile  
@@ -156,6 +158,10 @@ RULES:
 8. Use execute_task ONLY when the task needs screen interaction (navigating menus, clicking buttons). Always include the app name in the goal.
 9. Media controls (play, pause, next, previous) → ALWAYS use media_control. NEVER use execute_task.
 10. WhatsApp, Instagram, Snapchat → Use dedicated actions. Only use execute_task for complex multi-step interactions.
+11. Time/Date/News → ALWAYS use get_datetime for time/date queries and get_news for news queries. NEVER use execute_task for these.
+12. Sharing → Use share_image for image files, share_text for text content. Use execute_task ONLY if you need to navigate to a specific screen first.
+13. Screenshots → Use take_screenshot to capture the current screen. For tasks like 'open Instagram and take a screenshot of X', use execute_task with clear step instructions.
+14. Phone Calls → ALWAYS use make_call for regular calls. Use whatsapp_call for WhatsApp calls. Provide either contactName OR phoneNumber in params.
 
 Examples:
 - "play music on youtube" → youtube_play {"query": "music"}
@@ -349,7 +355,7 @@ Answer questions, explain concepts, brainstorm, write emails/messages, and chat 
             },
             body: requestBody,
           )
-          .timeout(const Duration(minutes: 30));
+          .timeout(const Duration(minutes: 2));
 
       developer.log(
         'API Response [${response.statusCode}]: ${response.body}',
@@ -457,7 +463,7 @@ Answer questions, explain concepts, brainstorm, write emails/messages, and chat 
 
       final response = await client
           .send(request)
-          .timeout(const Duration(minutes: 30));
+          .timeout(const Duration(minutes: 2));
 
       if (response.statusCode != 200) {
         final body = await response.stream.bytesToString();

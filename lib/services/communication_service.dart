@@ -5,6 +5,7 @@ import 'contacts_service.dart';
 class CommunicationService {
   final ContactsService _contactsService = ContactsService();
   static const _smsChannel = MethodChannel('com.doom/sms');
+  static const _deviceChannel = MethodChannel('com.doom/device_actions');
 
   /// Make a phone call. Can accept a name or number.
   Future<String> makeCall({String? contactName, String? phoneNumber}) async {
@@ -26,8 +27,7 @@ class CommunicationService {
     final cleanNumber = number.replaceAll(RegExp(r'[^\d+*#]'), '');
 
     try {
-      final channel = MethodChannel('com.doom/device_actions');
-      final result = await channel.invokeMethod<String>('makeDirectCall', {'number': cleanNumber});
+      final result = await _deviceChannel.invokeMethod<String>('makeDirectCall', {'number': cleanNumber});
       return result ?? 'Calling $cleanNumber${contactName != null ? ' ($contactName)' : ''}...';
     } catch (e) {
       return 'Error making call: $e';

@@ -247,15 +247,15 @@ Samsung OneUI hints:
       }
 
       // Adaptive delay: give Android apps time to transition screens, load data, or open keyboards
-      int delay = 500; // Default 0.5s delay for most actions
+      int delay = 300; // Default 0.3s delay for most actions
       if (lastAction == 'open_app') {
-        delay = 500; // Apps need ~1.5 seconds to cold-start and render
+        delay = 400; // Apps need ~1.5 seconds to cold-start and render
       } else if (lastAction == 'type_text') {
-        delay = 400; // Typing involves keyboards and often triggers network requests
+        delay = 300; // Typing involves keyboards and often triggers network requests
       } else if (lastAction == 'click_text' || lastAction == 'click_at') {
-        delay = 600; // Clicking usually triggers a screen transition
+        delay = 400; // Clicking usually triggers a screen transition
       } else if (lastAction == 'scroll') {
-        delay = 400; // Scrolling is relatively fast
+        delay = 300; // Scrolling is relatively fast
       }
       await Future.delayed(Duration(milliseconds: delay));
 
@@ -263,10 +263,7 @@ Samsung OneUI hints:
       final screenContent = _aiService.useScreenCompression
           ? await _screenService.getCompressedScreenDescription(userGoal)
           : await _screenService.getScreenDescription();
-      developer.log(
-        '=== SCREEN DUMP (Step ${step + 1}) ===\n$screenContent',
-        name: 'PrivateAgent',
-      );
+      // developer.log('=== SCREEN DUMP (Step ${step + 1}) ===', name: 'PrivateAgent');
 
       // Determine previous result string
       final prevResultStr = step > 0 && results.isNotEmpty
@@ -288,7 +285,7 @@ CURRENT SCREEN TEXT DUMP:
 $screenContent$prevResultStr$failureHint
 Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. What is the next action?''';
 
-      developer.log('=== AI PROMPT ===\n$prompt', name: 'PrivateAgent');
+      // developer.log('=== AI PROMPT ===', name: 'PrivateAgent');
 
       // 3. Get AI response — races against cancel signal so Stop works immediately
       String response;
@@ -324,10 +321,7 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
         response = aiResponse.content;
         totalTokens += aiResponse.totalTokens;
 
-        developer.log(
-          '=== RAW AI RESPONSE ===\n$response',
-          name: 'PrivateAgent',
-        );
+        // developer.log('=== RAW AI RESPONSE ===', name: 'PrivateAgent');
       } catch (e) {
         if (_cancelled) {
           results.add('Task cancelled by user.');
@@ -728,15 +722,15 @@ Step ${step + 1}/${_aiService.maxSteps}. Look at the text dump and coordinates. 
       _report('Replaying step ${i + 1}/${skill.steps.length}: ${step.action}');
 
       // Delay before executing each step
-      int delay = 800;
+      int delay = 400;
       if (step.action == 'open_app')
-        delay = 500;
+        delay = 300;
       else if (step.action == 'type_text')
-        delay = 400;
+        delay = 300;
       else if (step.action == 'click_text' || step.action == 'click_at')
-        delay = 700;
+        delay = 400;
       else if (step.action == 'scroll')
-        delay = 500;
+        delay = 300;
 
       await Future.delayed(Duration(milliseconds: delay));
 

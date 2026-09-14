@@ -36,7 +36,7 @@ class RecoveryEngine {
     // 3. Last action was click_text -> Try scrolling instead, or press back if stuck
     if (lastFailedAction == 'click_text' || lastFailedAction == 'click_at') {
       // Maybe we need to scroll to find it
-      if (lowerScreen.contains('scrollable')) {
+      if (lowerScreen.contains('scrollable') || lowerScreen.contains('[scroll]')) {
         return RecoveryAction(
           action: 'scroll',
           params: {'direction': 'down'},

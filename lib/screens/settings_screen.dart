@@ -48,6 +48,69 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   final Map<String, PermissionStatus> _permissions = {};
 
+  String _selectedTimezone = 'UTC';
+  String _selectedCountry = '';
+  String _selectedCity = '';
+
+  static final Map<String, Map<String, String>> _countryTimezones = {
+    'United States': {
+      'New York': 'America/New_York',
+      'Los Angeles': 'America/Los_Angeles',
+      'Chicago': 'America/Chicago',
+      'Houston': 'America/Chicago',
+    },
+    'United Kingdom': {
+      'London': 'Europe/London',
+      'Manchester': 'Europe/London',
+    },
+    'India': {
+      'Mumbai': 'Asia/Kolkata',
+      'Delhi': 'Asia/Kolkata',
+      'Bangalore': 'Asia/Kolkata',
+    },
+    'Pakistan': {
+      'Karachi': 'Asia/Karachi',
+      'Lahore': 'Asia/Karachi',
+      'Islamabad': 'Asia/Karachi',
+    },
+    'Canada': {
+      'Toronto': 'America/Toronto',
+      'Vancouver': 'America/Vancouver',
+    },
+    'Australia': {
+      'Sydney': 'Australia/Sydney',
+      'Melbourne': 'Australia/Melbourne',
+    },
+    'Germany': {
+      'Berlin': 'Europe/Berlin',
+      'Munich': 'Europe/Berlin',
+    },
+    'France': {
+      'Paris': 'Europe/Paris',
+      'Lyon': 'Europe/Paris',
+    },
+    'Japan': {
+      'Tokyo': 'Asia/Tokyo',
+      'Osaka': 'Asia/Tokyo',
+    },
+    'China': {
+      'Beijing': 'Asia/Shanghai',
+      'Shanghai': 'Asia/Shanghai',
+    },
+    'Brazil': {
+      'Sao Paulo': 'America/Sao_Paulo',
+      'Rio de Janeiro': 'America/Sao_Paulo',
+    },
+    'UAE': {
+      'Dubai': 'Asia/Dubai',
+      'Abu Dhabi': 'Asia/Dubai',
+    },
+    'Saudi Arabia': {
+      'Riyadh': 'Asia/Riyadh',
+      'Jeddah': 'Asia/Riyadh',
+    },
+  };
+
   @override
   void initState() {
     super.initState();
@@ -75,9 +138,21 @@ class _SettingsScreenState extends State<SettingsScreen>
     _telegramTokenController.addListener(_autoSave);
     _maxTokensController.addListener(_autoSave);
 
+    _loadLocationPrefs();
     _checkPermissions();
     if (FeatureFlags.floatingOverlayEnabled) {
       _checkOverlayStatus();
+    }
+  }
+
+  Future<void> _loadLocationPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _selectedTimezone = prefs.getString('user_timezone') ?? 'UTC';
+        _selectedCountry = prefs.getString('user_country') ?? '';
+        _selectedCity = prefs.getString('user_city') ?? '';
+      });
     }
   }
 
@@ -821,6 +896,67 @@ class _SettingsScreenState extends State<SettingsScreen>
             subtitle: 'Required for automation, microphone, and contacts',
             isDark: isDark,
             children: _buildPermissionTiles(),
+          ),
+
+          // Location & Timezone Card
+          _buildSettingsCard(
+            icon: Icons.public_outlined,
+            title: 'Location & Timezone',
+            subtitle: 'Set your region for accurate scheduling',
+            isDark: isDark,
+            children: [
+              DropdownButtonFormField<String>(
+                decoration: _buildInputDecoration(
+                  labelText: 'Country',
+                  hintText: 'Select Country',
+                ),
+                value: _selectedCountry.isEmpty ? null : _selectedCountry,
+                items: _countryTimezones.keys.map((country) {
+                  return DropdownMenuItem(
+                    value: country,
+                    child: Text(country),
+                  );
+                }).toList(),
+                onChanged: (val) async {
+                  if (val != null) {
+                    setState(() {
+                      _selectedCountry = val;
+                      _selectedCity = '';
+                      _selectedTimezone = 'UTC';
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                decoration: _buildInputDecoration(
+                  labelText: 'City',
+                  hintText: 'Select City',
+                ),
+                value: _selectedCity.isEmpty ? null : _selectedCity,
+                items: _selectedCountry.isEmpty
+                    ? []
+                    : _countryTimezones[_selectedCountry]!.keys.map((city) {
+                        return DropdownMenuItem(
+                          value: city,
+                          child: Text(city),
+                        );
+                      }).toList(),
+                onChanged: (val) async {
+                  if (val != null && _selectedCountry.isNotEmpty) {
+                    final tz = _countryTimezones[_selectedCountry]![val] ?? 'UTC';
+                    setState(() {
+                      _selectedCity = val;
+                      _selectedTimezone = tz;
+                    });
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('user_timezone', tz);
+                    await prefs.setString('user_country', _selectedCountry);
+                    await prefs.setString('user_city', val);
+                  }
+                },
+              ),
+            ],
           ),
 
           // 8. Task History Card

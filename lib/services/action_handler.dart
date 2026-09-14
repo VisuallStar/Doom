@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import '../models/agent_action.dart';
 import '../models/chat_message.dart';
 import 'app_launcher_service.dart';
@@ -11,6 +12,7 @@ import 'screen_automation_service.dart';
 import 'task_executor.dart';
 import 'ai_service.dart';
 import 'device_actions_service.dart';
+import 'news_service.dart';
 
 class ActionHandler {
   final AppLauncherService _appLauncher = AppLauncherService();
@@ -301,6 +303,26 @@ class ActionHandler {
           final actionString = action.params['action'] as String? ?? 'play_pause';
           result = await deviceActions.mediaControl(actionString);
           break;
+
+        case 'get_news':
+          final newsService = NewsService();
+          final topic = action.params['topic'] as String?;
+          final news = await newsService.getNews(topic: topic);
+          return AgentActionResult(actionType: 'get_news', success: true, details: news);
+
+        case 'share_text':
+          final text = action.params['text'] as String? ?? '';
+          final app = action.params['app'] as String?;
+          String? packageName;
+          if (app != null) {
+            final lowerApp = app.toLowerCase();
+            if (lowerApp.contains('whatsapp')) packageName = 'com.whatsapp';
+            else if (lowerApp.contains('telegram')) packageName = 'org.telegram.messenger';
+            else if (lowerApp.contains('instagram')) packageName = 'com.instagram.android';
+          }
+          final channel = MethodChannel('com.doom/device_actions');
+          await channel.invokeMethod('shareText', {'text': text, 'packageName': packageName});
+          return AgentActionResult(actionType: 'share_text', success: true, details: 'Text shared successfully');
 
         default:
           result = action.response;

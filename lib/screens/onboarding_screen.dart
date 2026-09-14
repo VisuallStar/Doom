@@ -44,12 +44,87 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   bool _isValidating = false;
   String? _validationError;
 
+  String _selectedTimezone = 'UTC';
+  String _selectedCountry = '';
+  String _selectedCity = '';
+
+  static final Map<String, Map<String, String>> _countryTimezones = {
+    'United States': {
+      'New York': 'America/New_York',
+      'Los Angeles': 'America/Los_Angeles',
+      'Chicago': 'America/Chicago',
+      'Houston': 'America/Chicago',
+    },
+    'United Kingdom': {
+      'London': 'Europe/London',
+      'Manchester': 'Europe/London',
+    },
+    'India': {
+      'Mumbai': 'Asia/Kolkata',
+      'Delhi': 'Asia/Kolkata',
+      'Bangalore': 'Asia/Kolkata',
+    },
+    'Pakistan': {
+      'Karachi': 'Asia/Karachi',
+      'Lahore': 'Asia/Karachi',
+      'Islamabad': 'Asia/Karachi',
+    },
+    'Canada': {
+      'Toronto': 'America/Toronto',
+      'Vancouver': 'America/Vancouver',
+    },
+    'Australia': {
+      'Sydney': 'Australia/Sydney',
+      'Melbourne': 'Australia/Melbourne',
+    },
+    'Germany': {
+      'Berlin': 'Europe/Berlin',
+      'Munich': 'Europe/Berlin',
+    },
+    'France': {
+      'Paris': 'Europe/Paris',
+      'Lyon': 'Europe/Paris',
+    },
+    'Japan': {
+      'Tokyo': 'Asia/Tokyo',
+      'Osaka': 'Asia/Tokyo',
+    },
+    'China': {
+      'Beijing': 'Asia/Shanghai',
+      'Shanghai': 'Asia/Shanghai',
+    },
+    'Brazil': {
+      'Sao Paulo': 'America/Sao_Paulo',
+      'Rio de Janeiro': 'America/Sao_Paulo',
+    },
+    'UAE': {
+      'Dubai': 'Asia/Dubai',
+      'Abu Dhabi': 'Asia/Dubai',
+    },
+    'Saudi Arabia': {
+      'Riyadh': 'Asia/Riyadh',
+      'Jeddah': 'Asia/Riyadh',
+    },
+  };
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadLocationPrefs();
     _loadAiDefaults();
     _checkPermissions();
+  }
+
+  Future<void> _loadLocationPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _selectedTimezone = prefs.getString('user_timezone') ?? 'UTC';
+        _selectedCountry = prefs.getString('user_country') ?? '';
+        _selectedCity = prefs.getString('user_city') ?? '';
+      });
+    }
   }
 
   Future<void> _loadAiDefaults() async {
@@ -825,6 +900,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             child: ListView(
               physics: const BouncingScrollPhysics(),
               children: [
+                _buildSectionHeader('LOCATION & TIMEZONE', isDark),
+                _buildLocationCard(isDark),
+                const SizedBox(height: 20),
                 _buildSectionHeader('MANDATORY', isDark),
                 _buildPermissionCard(
                   'Screen Control (Accessibility)',
@@ -975,6 +1053,139 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
           const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLocationCard(bool isDark) {
+    final bool isCompleted = _selectedCountry.isNotEmpty && _selectedCity.isNotEmpty;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isCompleted
+              ? Colors.green.withOpacity(0.3)
+              : Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.public_rounded,
+                      size: 20,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Text(
+                      'Your Location',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  if (isCompleted)
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: Colors.green,
+                      size: 24,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Select your country and city for accurate reminder scheduling.',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  height: 1.45,
+                  color: isDark
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF475569),
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  labelText: 'Country',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                value: _selectedCountry.isEmpty ? null : _selectedCountry,
+                items: _countryTimezones.keys.map((country) {
+                  return DropdownMenuItem(
+                    value: country,
+                    child: Text(country),
+                  );
+                }).toList(),
+                onChanged: (val) async {
+                  if (val != null) {
+                    setState(() {
+                      _selectedCountry = val;
+                      _selectedCity = '';
+                      _selectedTimezone = 'UTC';
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  labelText: 'City',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                value: _selectedCity.isEmpty ? null : _selectedCity,
+                items: _selectedCountry.isEmpty
+                    ? []
+                    : _countryTimezones[_selectedCountry]!.keys.map((city) {
+                        return DropdownMenuItem(
+                          value: city,
+                          child: Text(city),
+                        );
+                      }).toList(),
+                onChanged: (val) async {
+                  if (val != null && _selectedCountry.isNotEmpty) {
+                    final tz = _countryTimezones[_selectedCountry]![val] ?? 'UTC';
+                    setState(() {
+                      _selectedCity = val;
+                      _selectedTimezone = tz;
+                    });
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('user_timezone', tz);
+                    await prefs.setString('user_country', _selectedCountry);
+                    await prefs.setString('user_city', val);
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
