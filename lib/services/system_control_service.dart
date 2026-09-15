@@ -3,6 +3,7 @@ import 'package:screen_brightness/screen_brightness.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SystemControlService {
   SystemControlService() {
@@ -88,12 +89,17 @@ class SystemControlService {
     }
   }
 
-  /// Get current date, time, and day of week
-  String getDateTime() {
+  /// Get current date, time, and day of week with user's location context
+  Future<String> getDateTime() async {
     final now = DateTime.now();
     final dateFormat = DateFormat('EEEE, MMMM d, yyyy');
     final timeFormat = DateFormat('h:mm a');
-    return 'Today is ${dateFormat.format(now)}.\nThe current time is ${timeFormat.format(now)}.';
+    final prefs = await SharedPreferences.getInstance();
+    final city = prefs.getString('user_city') ?? '';
+    final country = prefs.getString('user_country') ?? '';
+    final location = city.isNotEmpty ? '$city, $country' : (country.isNotEmpty ? country : '');
+    final locationStr = location.isNotEmpty ? '\nYour location: $location' : '';
+    return 'Today is ${dateFormat.format(now)}.\nThe current time is ${timeFormat.format(now)}.$locationStr';
   }
 
   /// Take a screenshot using the accessibility service (no clicks needed)

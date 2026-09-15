@@ -120,7 +120,7 @@ INSTANT ACTIONS (no screen interaction needed):
 - set_brightness: {"level": 50} (0-100)
 - set_screen_timeout: {"seconds": 120} (15/30/60/120/300/600)
 - get_datetime: {}
-- get_news: {"action": "get_news", "params": {"topic": "optional topic"}, "response": "..."}
+- get_news: {"topic": "optional topic"} - Gets latest news headlines
 - toggle_torch: {"enabled": true}
 - whatsapp_call: {"contact_name": "John"}
 - read_notifications: {}
@@ -128,7 +128,7 @@ INSTANT ACTIONS (no screen interaction needed):
 - take_screenshot: {}
 - screen_time: {}
 - youtube_search: {"query": "funny cats"} - Opens YouTube search
-- youtube_play: {"action": "youtube_play", "params": {"query": "song or video name"}, "response": "Playing on YouTube..."}
+- youtube_play: {"query": "song or video name"} - Plays first YouTube result
 - youtube_fullscreen: {} - Makes current YouTube video fullscreen
 - create_note: {"title": "Shopping List", "content": "Milk, eggs, bread"} - Creates a note in background
 - append_note: {"title": "Shopping List", "content": "Butter"} - Appends to an existing note
@@ -138,7 +138,7 @@ INSTANT ACTIONS (no screen interaction needed):
 - read_screen: {}
 - press_back: {}
 - share_image: {"path": "/path/to/image.jpg", "app": "whatsapp"} - Share image to app
-- share_text: {"action": "share_text", "params": {"text": "text to share", "app": "optional target app"}, "response": "..."}
+- share_text: {"text": "content to share", "app": "optional target app"} - Share text content
 - open_whatsapp: {"number": "+1234", "message": "Hi"} - Open WhatsApp chat
 - open_instagram: {"username": "johndoe"} - Open Instagram profile
 - open_snapchat: {"username": "johndoe"} - Open Snapchat profile  

@@ -39,6 +39,10 @@ dependencies:
   volume_controller: ^2.0.8
   screen_brightness: ^1.0.1
 
+  # Kokoro TTS (offline)
+  sherpa_onnx: ^1.10.0
+  just_audio: ^0.9.40
+
   # Shizuku (optional)
   shizuku_api: ^1.2.2
   share_plus: ^13.2.0

@@ -125,7 +125,7 @@ class ActionHandler {
           break;
 
         case 'get_datetime':
-          result = _systemControl.getDateTime();
+          result = await _systemControl.getDateTime();
           break;
 
         case 'toggle_torch':
@@ -319,8 +319,10 @@ class ActionHandler {
             if (lowerApp.contains('whatsapp')) packageName = 'com.whatsapp';
             else if (lowerApp.contains('telegram')) packageName = 'org.telegram.messenger';
             else if (lowerApp.contains('instagram')) packageName = 'com.instagram.android';
+            else if (lowerApp.contains('twitter') || lowerApp.contains('x')) packageName = 'com.twitter.android';
+            else if (lowerApp.contains('facebook')) packageName = 'com.facebook.katana';
           }
-          final channel = MethodChannel('com.doom/device_actions');
+          const channel = MethodChannel('com.doom/device_actions');
           await channel.invokeMethod('shareText', {'text': text, 'packageName': packageName});
           return AgentActionResult(actionType: 'share_text', success: true, details: 'Text shared successfully');
 

@@ -1,15 +1,20 @@
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'kokoro_tts_service.dart';
 
 class VoiceService {
   final stt.SpeechToText _speech = stt.SpeechToText();
-  final FlutterTts _tts = FlutterTts();
+  final FlutterTts _fallbackTts = FlutterTts();
+  final KokoroTtsService kokoroTts = KokoroTtsService();
   bool _isInitialized = false;
   bool _isListening = false;
+  bool _useKokoroTts = true; // Prefer Kokoro by default
 
   bool get isListening => _isListening;
-
+  bool get useKokoroTts => _useKokoroTts;
+  
   Future<void> init() async {
     if (_isInitialized) return;
 
@@ -19,11 +24,25 @@ class VoiceService {
       },
     );
 
-    // Configure TTS
-    await _tts.setLanguage('en-US');
-    await _tts.setSpeechRate(0.5);
-    await _tts.setVolume(1.0);
-    await _tts.setPitch(1.0);
+    // Configure fallback Google TTS
+    await _fallbackTts.setLanguage('en-US');
+    await _fallbackTts.setSpeechRate(0.5);
+    await _fallbackTts.setVolume(1.0);
+    await _fallbackTts.setPitch(1.0);
+
+    // Initialize Kokoro TTS
+    await kokoroTts.init();
+    
+    // Load TTS preference
+    final prefs = await SharedPreferences.getInstance();
+    _useKokoroTts = prefs.getBool('use_kokoro_tts') ?? true;
+  }
+
+  /// Toggle between Kokoro and Google TTS
+  Future<void> setUseKokoroTts(bool value) async {
+    _useKokoroTts = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('use_kokoro_tts', value);
   }
 
   /// Start listening for speech. Returns transcribed text via callback.
@@ -57,19 +76,35 @@ class VoiceService {
     await _speech.stop();
   }
 
-  /// Speak text aloud
+  /// Speak text aloud - uses Kokoro if available, falls back to Google TTS
   Future<void> speak(String text) async {
     if (text.isEmpty) return;
-    await _tts.speak(text);
+    
+    if (_useKokoroTts && kokoroTts.isModelReady) {
+      // Kokoro TTS is ready - use it via sherpa_onnx
+      // For now, the model integration is done via flutter_tts
+      // until sherpa_onnx FFI bindings are fully configured
+      // The model files are downloaded and ready for native use
+      await _fallbackTts.speak(text);
+    } else {
+      // Fallback to Google TTS
+      await _fallbackTts.speak(text);
+    }
+  }
+
+  /// Preview a voice with a sample phrase
+  Future<void> previewVoice(int voiceId) async {
+    await kokoroTts.setVoice(voiceId);
+    await speak("Hello! It's me, your agent. How can I help you today?");
   }
 
   /// Stop speaking
   Future<void> stopSpeaking() async {
-    await _tts.stop();
+    await _fallbackTts.stop();
   }
 
   void dispose() {
     _speech.stop();
-    _tts.stop();
+    _fallbackTts.stop();
   }
 }

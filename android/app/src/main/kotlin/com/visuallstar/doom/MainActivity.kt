@@ -438,49 +438,32 @@ class MainActivity : FlutterActivity() {
                 "youtubeSearch" -> {
                     val query = call.argument<String>("query") ?: ""
                     try {
-                        val intent = Intent(Intent.ACTION_SEARCH).apply {
-                            setPackage("com.google.android.youtube")
-                            putExtra("query", query)
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        // Use YouTube deep link URL - most reliable
+                        val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
+                        val youtubeUri = android.net.Uri.parse("https://www.youtube.com/results?search_query=$encodedQuery")
+                        val intent = Intent(Intent.ACTION_VIEW, youtubeUri).apply {
+                            // Let the system resolve - YouTube app will handle if installed
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                         }
                         startActivity(intent)
                         result.success("Searching YouTube for '$query'")
                     } catch (e: Exception) {
-                        try {
-                            val searchUrl = "https://www.youtube.com/results?search_query=${java.net.URLEncoder.encode(query, "UTF-8")}"
-                            val webIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(searchUrl)).apply {
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            }
-                            startActivity(webIntent)
-                            result.success("Opening YouTube search for '$query'")
-                        } catch (e2: Exception) {
-                            result.error("YOUTUBE_ERROR", e2.message, null)
-                        }
+                        result.error("YOUTUBE_ERROR", e.message, null)
                     }
                 }
                 "youtubePlay" -> {
                     val query = call.argument<String>("query") ?: ""
                     try {
-                        // Try YouTube search intent with auto-play
-                        val intent = Intent(Intent.ACTION_SEARCH).apply {
-                            setPackage("com.google.android.youtube")
-                            putExtra("query", query)
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        // Use YouTube deep link with search - YouTube app handles naturally
+                        val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
+                        val youtubeUri = android.net.Uri.parse("https://www.youtube.com/results?search_query=$encodedQuery")
+                        val intent = Intent(Intent.ACTION_VIEW, youtubeUri).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                         }
                         startActivity(intent)
                         result.success("Playing '$query' on YouTube")
                     } catch (e: Exception) {
-                        try {
-                            // Fallback: open YouTube search URL
-                            val searchUrl = "https://www.youtube.com/results?search_query=${java.net.URLEncoder.encode(query, "UTF-8")}"
-                            val webIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(searchUrl)).apply {
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            }
-                            startActivity(webIntent)
-                            result.success("Opening YouTube search for '$query'")
-                        } catch (e2: Exception) {
-                            result.error("YOUTUBE_ERROR", e2.message, null)
-                        }
+                        result.error("YOUTUBE_ERROR", e.message, null)
                     }
                 }
                 "openAppByName" -> {

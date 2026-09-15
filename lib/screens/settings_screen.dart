@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/voice_service.dart';
+import '../services/kokoro_tts_service.dart';
 import '../main.dart';
 import '../services/ai_service.dart';
 import '../services/shizuku_service.dart';
@@ -47,6 +49,14 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _isOverlayPermissionGranted = false;
 
   final Map<String, PermissionStatus> _permissions = {};
+
+  final VoiceService _voiceService = VoiceService();
+  bool _kokoroModelReady = false;
+  bool _kokoroDownloading = false;
+  double _kokoroProgress = 0.0;
+  int _selectedVoiceId = 5;
+  bool _useKokoroTts = true;
+  bool _previewPlaying = false;
 
   String _selectedTimezone = 'UTC';
   String _selectedCountry = '';
@@ -140,8 +150,21 @@ class _SettingsScreenState extends State<SettingsScreen>
 
     _loadLocationPrefs();
     _checkPermissions();
+    _initVoiceService();
     if (FeatureFlags.floatingOverlayEnabled) {
       _checkOverlayStatus();
+    }
+  }
+
+
+  Future<void> _initVoiceService() async {
+    await _voiceService.init();
+    if (mounted) {
+      setState(() {
+        _kokoroModelReady = _voiceService.kokoroTts.isModelReady;
+        _selectedVoiceId = _voiceService.kokoroTts.selectedVoiceId;
+        _useKokoroTts = _voiceService.useKokoroTts;
+      });
     }
   }
 
@@ -313,6 +336,120 @@ class _SettingsScreenState extends State<SettingsScreen>
         ),
       );
     }
+  }
+
+
+  Widget _buildVoiceTtsCard() {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 20),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.record_voice_over, color: Theme.of(context).primaryColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Text('Voice & TTS Engine', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              title: Text(_useKokoroTts ? 'Kokoro TTS (Offline)' : 'Google TTS (Online)'),
+              subtitle: Text(_useKokoroTts 
+                ? 'High-quality offline voice synthesis' 
+                : 'Default Android TTS engine'),
+              value: _useKokoroTts,
+              onChanged: (val) async {
+                await _voiceService.setUseKokoroTts(val);
+                setState(() => _useKokoroTts = val);
+              },
+              contentPadding: EdgeInsets.zero,
+            ),
+            if (_useKokoroTts) ...[
+              const Divider(),
+              if (!_kokoroModelReady && !_kokoroDownloading) ...[
+                Center(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.download),
+                    label: const Text('Download Kokoro Model (~80MB)'),
+                    onPressed: () async {
+                      setState(() => _kokoroDownloading = true);
+                      final success = await _voiceService.kokoroTts.downloadModel(
+                        onProgress: (p) {
+                          if (mounted) setState(() => _kokoroProgress = p);
+                        },
+                      );
+                      if (mounted) {
+                        setState(() {
+                          _kokoroDownloading = false;
+                          _kokoroModelReady = success;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ],
+              if (_kokoroDownloading)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Column(children: [
+                    LinearProgressIndicator(value: _kokoroProgress),
+                    const SizedBox(height: 8),
+                    Text('Downloading... ${(_kokoroProgress * 100).toStringAsFixed(0)}%' ),
+                  ]),
+                ),
+              if (_kokoroModelReady) ...[
+                const SizedBox(height: 8),
+                const Text('Select Voice:', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                ...KokoroTtsService.voices.entries.map((entry) {
+                  final id = entry.key;
+                  final voice = entry.value;
+                  final isSelected = _selectedVoiceId == id;
+                  final isMale = voice['gender'] == 'Male';
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(
+                      backgroundColor: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade300,
+                      child: Icon(
+                        isMale ? Icons.male : Icons.female,
+                        color: isSelected ? Colors.white : Colors.grey.shade700,
+                      ),
+                    ),
+                    title: Text(voice['name']!, style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    )),
+                    subtitle: Text('${voice['gender']} • ${voice['accent']}'),
+                    trailing: isSelected && _previewPlaying
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                        : (isSelected ? Icon(Icons.check_circle, color: Theme.of(context).primaryColor) : null),
+                    selected: isSelected,
+                    onTap: () async {
+                      setState(() {
+                        _selectedVoiceId = id;
+                        _previewPlaying = true;
+                      });
+                      await _voiceService.kokoroTts.setVoice(id);
+                      await _voiceService.speak("Hello! It's me, your agent. How can I help you today?");
+                      if (mounted) setState(() => _previewPlaying = false);
+                    },
+                  );
+                }),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildSettingsCard({
@@ -851,6 +988,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
             ],
           ),
+
+          // Voice & TTS Card
+          _buildVoiceTtsCard(),
 
           // 5. Telegram Remote Access Card
           _buildSettingsCard(
