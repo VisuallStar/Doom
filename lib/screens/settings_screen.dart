@@ -483,9 +483,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        _kokoroProgress < 0.8
-                          ? 'Downloading model files… ${(_kokoroProgress * 100).toStringAsFixed(0)}%'
-                          : 'Downloading espeak data… ${(_kokoroProgress * 100).toStringAsFixed(0)}%',
+                        _kokoroProgress < 0.80
+                          ? 'Downloading model (~98 MB)… ${(_kokoroProgress * 100).toStringAsFixed(0)}%'
+                          : _kokoroProgress < 0.95
+                            ? 'Extracting model files… ${(_kokoroProgress * 100).toStringAsFixed(0)}%'
+                            : 'Finalizing… ${(_kokoroProgress * 100).toStringAsFixed(0)}%',
                         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13,
                           color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
                       ),

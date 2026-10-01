@@ -2,30 +2,26 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa_onnx;
 import 'package:just_audio/just_audio.dart';
+import 'package:archive/archive.dart';
 
 /// Kokoro TTS Service using sherpa-onnx
-/// Downloads the Kokoro-82M ONNX model on first use and runs inference locally.
+/// Downloads the Kokoro int8 ONNX model on first use and runs inference locally.
 /// Generates real speech audio via the OfflineTts API and plays it with just_audio.
 class KokoroTtsService {
   static const String _modelDirName = 'kokoro_tts_model';
 
-  // HuggingFace direct download URLs for Kokoro v0.19 model files
-  static const String _modelOnnxUrl =
-      'https://huggingface.co/csukuangfj/kokoro-en-v0_19/resolve/main/model.onnx';
-  static const String _voicesBinUrl =
-      'https://huggingface.co/csukuangfj/kokoro-en-v0_19/resolve/main/voices.bin';
-  static const String _tokensTxtUrl =
-      'https://huggingface.co/csukuangfj/kokoro-en-v0_19/resolve/main/tokens.txt';
-  // espeak-ng-data archive from sherpa-onnx releases
-  static const String _espeakDataUrl =
-      'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/espeak-ng-data.tar.bz2';
+  // The int8 quantized model is ~98 MB (vs 305 MB for full float) — much more
+  // phone-friendly while keeping the same 11 voices and quality.
+  static const String _modelArchiveUrl =
+      'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-int8-en-v0_19.tar.bz2';
+
+  // Subfolder name inside the tar archive
+  static const String _archiveSubdir = 'kokoro-int8-en-v0_19';
 
   // All available Kokoro v0.19 English voices with speaker IDs.
-  // af = American Female, am = American Male, bf = British Female, bm = British Male
   static const Map<int, Map<String, String>> voices = {
     0: {'name': 'Heart (af)', 'gender': 'Female', 'accent': 'American', 'tag': 'af'},
     1: {'name': 'Bella', 'gender': 'Female', 'accent': 'American', 'tag': 'af_bella'},
@@ -152,7 +148,9 @@ class KokoroTtsService {
     }
   }
 
-  /// Download all required model files for Kokoro TTS.
+  /// Download the Kokoro model archive and extract all required files.
+  /// Uses dart:io HttpClient which properly follows HTTP 302 redirects
+  /// (GitHub releases redirect to Azure CDN).
   Future<bool> downloadModel({void Function(double)? onProgress}) async {
     if (_isDownloading) return false;
     _isDownloading = true;
@@ -164,101 +162,71 @@ class KokoroTtsService {
         await dir.create(recursive: true);
       }
 
-      // --- Step 1: Download model files (3 files) ---
-      final modelFiles = {
-        'model.onnx': _modelOnnxUrl,
-        'voices.bin': _voicesBinUrl,
-        'tokens.txt': _tokensTxtUrl,
-      };
-
-      // Total progress: 80% for model files, 20% for espeak-ng-data
-      int downloadedCount = 0;
-      for (final entry in modelFiles.entries) {
-        final targetFile = File('$_modelDir/${entry.key}');
-        if (await targetFile.exists() && (await targetFile.length()) > 0) {
-          downloadedCount++;
-          _downloadProgress = (downloadedCount / modelFiles.length) * 0.8;
-          onProgress?.call(_downloadProgress);
-          continue;
-        }
-
-        debugPrint('KokoroTTS: Downloading ${entry.key}...');
-        final response = await _downloadFileWithProgress(
-          entry.value,
-          targetFile,
-          (fileProgress) {
-            final base = (downloadedCount / modelFiles.length) * 0.8;
-            final portion = (1.0 / modelFiles.length) * 0.8;
-            _downloadProgress = base + (fileProgress * portion);
-            onProgress?.call(_downloadProgress);
-          },
-        );
-
-        if (!response) {
-          throw Exception('Failed to download ${entry.key}');
-        }
-        downloadedCount++;
+      // If model files already exist, skip download
+      if (await _allModelFilesExist()) {
+        _isModelReady = true;
+        _isDownloading = false;
+        await _initTtsEngine();
+        return true;
       }
 
-      // --- Step 2: Download and extract espeak-ng-data ---
-      final espeakDir = Directory('$_modelDir/espeak-ng-data');
-      bool espeakValid = await espeakDir.exists() &&
-          (await espeakDir.list().length) > 2;
+      // --- Step 1: Download the tar.bz2 archive (~98 MB for int8) ---
+      debugPrint('KokoroTTS: Downloading model archive...');
+      final archivePath = '${_modelDir!}/model_archive.tar.bz2';
+      final archiveFile = File(archivePath);
 
-      if (!espeakValid) {
-        debugPrint('KokoroTTS: Downloading espeak-ng-data...');
-        _downloadProgress = 0.85;
-        onProgress?.call(_downloadProgress);
+      final downloadOk = await _downloadFileWithRedirects(
+        _modelArchiveUrl,
+        archiveFile,
+        (progress) {
+          // Download is 80% of total progress
+          _downloadProgress = progress * 0.80;
+          onProgress?.call(_downloadProgress);
+        },
+      );
 
-        // Download the tar.bz2 archive
-        final archiveFile = File('$_modelDir/espeak-ng-data.tar.bz2');
-        final dlOk = await _downloadFileWithProgress(
-          _espeakDataUrl,
-          archiveFile,
-          (p) {
-            _downloadProgress = 0.8 + (p * 0.15);
-            onProgress?.call(_downloadProgress);
-          },
-        );
+      if (!downloadOk) {
+        throw Exception('Failed to download model archive');
+      }
 
-        if (!dlOk) {
-          throw Exception('Failed to download espeak-ng-data');
-        }
+      // --- Step 2: Extract tar.bz2 using the archive package ---
+      debugPrint('KokoroTTS: Extracting model archive...');
+      _downloadProgress = 0.82;
+      onProgress?.call(_downloadProgress);
 
-        // Extract using tar (available on Android via BusyBox/Toybox)
-        try {
-          final result = await Process.run(
-            'tar',
-            ['xjf', archiveFile.path, '-C', _modelDir!],
-          );
-          if (result.exitCode != 0) {
-            debugPrint('KokoroTTS: tar extraction failed: ${result.stderr}');
-            // Fallback: try using bunzip2 + tar separately
-            final bz2Result = await Process.run(
-              'bunzip2',
-              ['-k', archiveFile.path],
-            );
-            if (bz2Result.exitCode == 0) {
-              final tarFile = archiveFile.path.replaceAll('.bz2', '');
-              await Process.run('tar', ['xf', tarFile, '-C', _modelDir!]);
-              // Clean up tar file
-              final tf = File(tarFile);
-              if (await tf.exists()) await tf.delete();
+      await _extractTarBz2(archiveFile, dir);
+
+      _downloadProgress = 0.95;
+      onProgress?.call(_downloadProgress);
+
+      // --- Step 3: Move files from subdirectory to model dir ---
+      // The archive extracts to kokoro-int8-en-v0_19/ subfolder
+      final extractedSubdir = Directory('${_modelDir!}/$_archiveSubdir');
+      if (await extractedSubdir.exists()) {
+        await for (final entity in extractedSubdir.list()) {
+          final targetName = entity.path.split('/').last;
+          final targetPath = '${_modelDir!}/$targetName';
+          if (entity is File) {
+            await entity.copy(targetPath);
+            await entity.delete();
+          } else if (entity is Directory) {
+            // For espeak-ng-data directory, move it
+            final targetDir = Directory(targetPath);
+            if (await targetDir.exists()) {
+              await targetDir.delete(recursive: true);
             }
-          }
-        } catch (e) {
-          debugPrint('KokoroTTS: Archive extraction error: $e');
-          // If extraction fails, create the directory structure manually
-          // This is a last resort
-          if (!await espeakDir.exists()) {
-            await espeakDir.create(recursive: true);
+            await entity.rename(targetPath);
           }
         }
+        // Remove the now-empty subdirectory
+        if (await extractedSubdir.exists()) {
+          await extractedSubdir.delete(recursive: true);
+        }
+      }
 
-        // Clean up archive
-        if (await archiveFile.exists()) {
-          await archiveFile.delete();
-        }
+      // --- Step 4: Cleanup archive file ---
+      if (await archiveFile.exists()) {
+        await archiveFile.delete();
       }
 
       _downloadProgress = 1.0;
@@ -280,26 +248,32 @@ class KokoroTtsService {
     }
   }
 
-  /// Download a file with chunked progress reporting.
-  Future<bool> _downloadFileWithProgress(
+  /// Download a file using dart:io HttpClient, which properly follows
+  /// HTTP 302 redirects (required for GitHub releases → Azure CDN).
+  Future<bool> _downloadFileWithRedirects(
     String url,
     File targetFile,
     void Function(double) onProgress,
   ) async {
+    HttpClient? client;
     try {
-      final request = http.Request('GET', Uri.parse(url));
-      final response = await request.send();
+      client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 30);
+
+      final request = await client.getUrl(Uri.parse(url));
+      final response = await request.close();
 
       if (response.statusCode != 200) {
         debugPrint('KokoroTTS: HTTP ${response.statusCode} for $url');
+        client.close();
         return false;
       }
 
-      final contentLength = response.contentLength ?? -1;
+      final contentLength = response.contentLength;
       int receivedBytes = 0;
       final sink = targetFile.openWrite();
 
-      await for (final chunk in response.stream) {
+      await for (final chunk in response) {
         sink.add(chunk);
         receivedBytes += chunk.length;
         if (contentLength > 0) {
@@ -309,10 +283,49 @@ class KokoroTtsService {
 
       await sink.flush();
       await sink.close();
+      client.close();
       return true;
     } catch (e) {
       debugPrint('KokoroTTS: Download error for $url: $e');
+      client?.close();
       return false;
+    }
+  }
+
+  /// Extract a .tar.bz2 archive using the Dart `archive` package.
+  /// Runs in an isolate to avoid blocking the UI thread.
+  Future<void> _extractTarBz2(File archiveFile, Directory outputDir) async {
+    await compute(_extractTarBz2Isolate, {
+      'archivePath': archiveFile.path,
+      'outputPath': outputDir.path,
+    });
+  }
+
+  /// Static method for isolate execution — extracts tar.bz2 archive.
+  static void _extractTarBz2Isolate(Map<String, String> args) {
+    final archivePath = args['archivePath']!;
+    final outputPath = args['outputPath']!;
+
+    final bytes = File(archivePath).readAsBytesSync();
+
+    // Step 1: Decompress BZip2
+    final bz2Decoder = BZip2Decoder();
+    final tarBytes = bz2Decoder.decodeBytes(bytes);
+
+    // Step 2: Decode Tar
+    final tarDecoder = TarDecoder();
+    final archive = tarDecoder.decodeBytes(tarBytes);
+
+    // Step 3: Extract files
+    for (final file in archive) {
+      final filename = file.name;
+      if (file.isFile) {
+        final outputFile = File('$outputPath/$filename');
+        outputFile.createSync(recursive: true);
+        outputFile.writeAsBytesSync(file.content as List<int>);
+      } else {
+        Directory('$outputPath/$filename').createSync(recursive: true);
+      }
     }
   }
 
