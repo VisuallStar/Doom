@@ -340,6 +340,7 @@ class _SettingsScreenState extends State<SettingsScreen>
 
 
   Widget _buildVoiceTtsCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       margin: const EdgeInsets.only(bottom: 20),
       child: Padding(
@@ -358,15 +359,35 @@ class _SettingsScreenState extends State<SettingsScreen>
                   child: Icon(Icons.record_voice_over, color: Theme.of(context).primaryColor, size: 20),
                 ),
                 const SizedBox(width: 12),
-                const Text('Voice & TTS Engine', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Voice & TTS Engine', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Offline voice synthesis powered by Kokoro',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
+
+            // --- TTS Engine Toggle ---
             SwitchListTile(
-              title: Text(_useKokoroTts ? 'Kokoro TTS (Offline)' : 'Google TTS (Online)'),
-              subtitle: Text(_useKokoroTts 
-                ? 'High-quality offline voice synthesis' 
-                : 'Default Android TTS engine'),
+              title: Text(
+                _useKokoroTts ? 'Kokoro TTS (Offline)' : 'Google TTS (Online)',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(_useKokoroTts
+                ? 'High-quality local voice synthesis using sherpa-onnx'
+                : 'Default Android TTS engine (requires internet)'),
               value: _useKokoroTts,
               onChanged: (val) async {
                 await _voiceService.setUseKokoroTts(val);
@@ -374,82 +395,352 @@ class _SettingsScreenState extends State<SettingsScreen>
               },
               contentPadding: EdgeInsets.zero,
             ),
+
             if (_useKokoroTts) ...[
               const Divider(),
+
+              // --- Model Not Downloaded State ---
               if (!_kokoroModelReady && !_kokoroDownloading) ...[
-                Center(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.download),
-                    label: const Text('Download Kokoro Model (~80MB)'),
-                    onPressed: () async {
-                      setState(() => _kokoroDownloading = true);
-                      final success = await _voiceService.kokoroTts.downloadModel(
-                        onProgress: (p) {
-                          if (mounted) setState(() => _kokoroProgress = p);
-                        },
-                      );
-                      if (mounted) {
-                        setState(() {
-                          _kokoroDownloading = false;
-                          _kokoroModelReady = success;
-                        });
-                      }
-                    },
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.cloud_download_outlined, size: 40,
+                        color: Theme.of(context).primaryColor.withOpacity(0.7)),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Kokoro Model Required',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Download the Kokoro-82M ONNX model (~80 MB) for offline speech synthesis. '
+                        'Includes 11 high-quality voices in American & British English.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.download_rounded, color: Colors.white, size: 18),
+                          label: const Text('Download Kokoro Model',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () async {
+                            setState(() => _kokoroDownloading = true);
+                            final success = await _voiceService.kokoroTts.downloadModel(
+                              onProgress: (p) {
+                                if (mounted) setState(() => _kokoroProgress = p);
+                              },
+                            );
+                            if (mounted) {
+                              setState(() {
+                                _kokoroDownloading = false;
+                                _kokoroModelReady = success;
+                              });
+                              if (!success) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Download failed. Check your connection and try again.')),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
+
+              // --- Downloading State ---
               if (_kokoroDownloading)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Column(children: [
-                    LinearProgressIndicator(value: _kokoroProgress),
-                    const SizedBox(height: 8),
-                    Text('Downloading... ${(_kokoroProgress * 100).toStringAsFixed(0)}%' ),
-                  ]),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: _kokoroProgress,
+                          minHeight: 8,
+                          backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _kokoroProgress < 0.8
+                          ? 'Downloading model files… ${(_kokoroProgress * 100).toStringAsFixed(0)}%'
+                          : 'Downloading espeak data… ${(_kokoroProgress * 100).toStringAsFixed(0)}%',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13,
+                          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Please keep the app open during download',
+                        style: TextStyle(fontSize: 11,
+                          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
                 ),
+
+              // --- Model Ready: Full Settings UI ---
               if (_kokoroModelReady) ...[
+
+                // --- Model Status Bar ---
                 const SizedBox(height: 8),
-                const Text('Select Voice:', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                ...KokoroTtsService.voices.entries.map((entry) {
-                  final id = entry.key;
-                  final voice = entry.value;
-                  final isSelected = _selectedVoiceId == id;
-                  final isMale = voice['gender'] == 'Male';
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      backgroundColor: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade300,
-                      child: Icon(
-                        isMale ? Icons.male : Icons.female,
-                        color: isSelected ? Colors.white : Colors.grey.shade700,
+                FutureBuilder<double>(
+                  future: _voiceService.kokoroTts.getModelSizeMb(),
+                  builder: (context, snapshot) {
+                    final sizeMb = snapshot.data ?? 0;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.green.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Kokoro model ready • ${sizeMb.toStringAsFixed(1)} MB on disk',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                color: Colors.green.shade700),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Delete Kokoro Model?'),
+                                  content: const Text(
+                                    'This will remove all downloaded model files. '
+                                    'You can re-download them anytime.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm == true) {
+                                await _voiceService.kokoroTts.deleteModel();
+                                if (mounted) {
+                                  setState(() => _kokoroModelReady = false);
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                            label: const Text('Delete', style: TextStyle(fontSize: 11, color: Colors.red)),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+                // --- Speech Speed Slider ---
+                const SizedBox(height: 20),
+                Text(
+                  'Speech Speed: ${_voiceService.kokoroTts.speed.toStringAsFixed(1)}x',
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.slow_motion_video, size: 16, color: Colors.grey),
+                    Expanded(
+                      child: Slider(
+                        value: _voiceService.kokoroTts.speed,
+                        min: 0.5,
+                        max: 2.0,
+                        divisions: 15,
+                        label: '${_voiceService.kokoroTts.speed.toStringAsFixed(1)}x',
+                        onChanged: (val) {
+                          setState(() {});
+                          _voiceService.kokoroTts.setSpeed(val);
+                        },
                       ),
                     ),
-                    title: Text(voice['name']!, style: TextStyle(
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    )),
-                    subtitle: Text('${voice['gender']} • ${voice['accent']}'),
-                    trailing: isSelected && _previewPlaying
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                        : (isSelected ? Icon(Icons.check_circle, color: Theme.of(context).primaryColor) : null),
-                    selected: isSelected,
-                    onTap: () async {
-                      setState(() {
-                        _selectedVoiceId = id;
-                        _previewPlaying = true;
-                      });
-                      await _voiceService.kokoroTts.setVoice(id);
-                      await _voiceService.speak("Hello! It's me, your agent. How can I help you today?");
-                      if (mounted) setState(() => _previewPlaying = false);
-                    },
-                  );
-                }),
+                    const Icon(Icons.fast_forward, size: 16, color: Colors.grey),
+                  ],
+                ),
+
+                // --- Voice Selection ---
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Text('Select Voice', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '${KokoroTtsService.voices.length} voices',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                          color: Theme.of(context).primaryColor),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Group voices by accent
+                ..._buildVoiceGroups(),
               ],
             ],
           ],
         ),
       ),
     );
+  }
+
+  List<Widget> _buildVoiceGroups() {
+    // Group voices by accent
+    final Map<String, List<MapEntry<int, Map<String, String>>>> grouped = {};
+    for (final entry in KokoroTtsService.voices.entries) {
+      final accent = entry.value['accent'] ?? 'Other';
+      grouped.putIfAbsent(accent, () => []).add(entry);
+    }
+
+    final widgets = <Widget>[];
+    for (final group in grouped.entries) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 4),
+          child: Row(
+            children: [
+              Icon(
+                group.key == 'American' ? Icons.flag : Icons.flag_outlined,
+                size: 14,
+                color: Colors.grey,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${group.key} English',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      for (final entry in group.value) {
+        final id = entry.key;
+        final voice = entry.value;
+        final isSelected = _selectedVoiceId == id;
+        final isMale = voice['gender'] == 'Male';
+
+        widgets.add(
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              radius: 18,
+              backgroundColor: isSelected
+                ? Theme.of(context).primaryColor
+                : (isMale
+                    ? Colors.blue.shade50
+                    : Colors.pink.shade50),
+              child: Icon(
+                isMale ? Icons.male : Icons.female,
+                size: 20,
+                color: isSelected
+                  ? Colors.white
+                  : (isMale ? Colors.blue.shade600 : Colors.pink.shade600),
+              ),
+            ),
+            title: Text(
+              voice['name']!,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 14,
+              ),
+            ),
+            subtitle: Text(
+              '${voice['gender']} • ${voice['tag']}',
+              style: const TextStyle(fontSize: 11),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Preview button
+                IconButton(
+                  icon: _previewPlaying && _selectedVoiceId == id
+                    ? SizedBox(
+                        width: 20, height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      )
+                    : Icon(
+                        Icons.play_circle_outline,
+                        size: 22,
+                        color: Theme.of(context).primaryColor.withOpacity(0.7),
+                      ),
+                  onPressed: _previewPlaying ? null : () async {
+                    setState(() {
+                      _selectedVoiceId = id;
+                      _previewPlaying = true;
+                    });
+                    await _voiceService.previewVoice(id);
+                    if (mounted) setState(() => _previewPlaying = false);
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+                if (isSelected)
+                  Icon(Icons.check_circle, size: 20, color: Theme.of(context).primaryColor),
+              ],
+            ),
+            selected: isSelected,
+            onTap: () async {
+              setState(() => _selectedVoiceId = id);
+              await _voiceService.kokoroTts.setVoice(id);
+            },
+          ),
+        );
+      }
+    }
+    return widgets;
   }
 
   Widget _buildSettingsCard({

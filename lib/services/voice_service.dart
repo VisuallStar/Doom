@@ -76,16 +76,18 @@ class VoiceService {
     await _speech.stop();
   }
 
-  /// Speak text aloud - uses Kokoro if available, falls back to Google TTS
+  /// Speak text aloud - uses Kokoro TTS if available and enabled,
+  /// otherwise falls back to the system Google TTS.
   Future<void> speak(String text) async {
     if (text.isEmpty) return;
     
     if (_useKokoroTts && kokoroTts.isModelReady) {
-      // Kokoro TTS is ready - use it via sherpa_onnx
-      // For now, the model integration is done via flutter_tts
-      // until sherpa_onnx FFI bindings are fully configured
-      // The model files are downloaded and ready for native use
-      await _fallbackTts.speak(text);
+      // Use Kokoro TTS via sherpa_onnx — real offline TTS
+      final success = await kokoroTts.speak(text);
+      if (!success) {
+        // If Kokoro fails for any reason, fall back to Google TTS
+        await _fallbackTts.speak(text);
+      }
     } else {
       // Fallback to Google TTS
       await _fallbackTts.speak(text);
@@ -94,17 +96,21 @@ class VoiceService {
 
   /// Preview a voice with a sample phrase
   Future<void> previewVoice(int voiceId) async {
+    final voiceInfo = KokoroTtsService.voices[voiceId];
+    final name = voiceInfo?['name'] ?? 'Agent';
     await kokoroTts.setVoice(voiceId);
-    await speak("Hello! It's me, your agent. How can I help you today?");
+    await speak("Hi, I'm $name. How can I help you today?");
   }
 
   /// Stop speaking
   Future<void> stopSpeaking() async {
+    await kokoroTts.stop();
     await _fallbackTts.stop();
   }
 
   void dispose() {
     _speech.stop();
     _fallbackTts.stop();
+    kokoroTts.dispose();
   }
 }
