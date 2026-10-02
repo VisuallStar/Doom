@@ -52,8 +52,8 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   final VoiceService _voiceService = VoiceService();
   bool _kokoroModelReady = false;
-  bool _kokoroDownloading = false;
-  double _kokoroProgress = 0.0;
+  bool _kokoroExtracting = false;
+  double _kokoroExtractProgress = 0.0;
   int _selectedVoiceId = 5;
   bool _useKokoroTts = true;
   bool _previewPlaying = false;
@@ -399,71 +399,8 @@ class _SettingsScreenState extends State<SettingsScreen>
             if (_useKokoroTts) ...[
               const Divider(),
 
-              // --- Model Not Downloaded State ---
-              if (!_kokoroModelReady && !_kokoroDownloading) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(Icons.cloud_download_outlined, size: 40,
-                        color: Theme.of(context).primaryColor.withOpacity(0.7)),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Kokoro Model Required',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Download the Kokoro-82M ONNX model (~80 MB) for offline speech synthesis. '
-                        'Includes 11 high-quality voices in American & British English.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.download_rounded, color: Colors.white, size: 18),
-                          label: const Text('Download Kokoro Model',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          onPressed: () async {
-                            setState(() => _kokoroDownloading = true);
-                            final success = await _voiceService.kokoroTts.downloadModel(
-                              onProgress: (p) {
-                                if (mounted) setState(() => _kokoroProgress = p);
-                              },
-                            );
-                            if (mounted) {
-                              setState(() {
-                                _kokoroDownloading = false;
-                                _kokoroModelReady = success;
-                              });
-                              if (!success) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Download failed. Check your connection and try again.')),
-                                );
-                              }
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              // --- Downloading State ---
-              if (_kokoroDownloading)
+              // --- First-launch extraction in progress ---
+              if (!_kokoroModelReady && _kokoroExtracting)
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -476,26 +413,83 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: LinearProgressIndicator(
-                          value: _kokoroProgress,
+                          value: _kokoroExtractProgress,
                           minHeight: 8,
                           backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        _kokoroProgress < 0.80
-                          ? 'Downloading model (~98 MB)… ${(_kokoroProgress * 100).toStringAsFixed(0)}%'
-                          : _kokoroProgress < 0.95
-                            ? 'Extracting model files… ${(_kokoroProgress * 100).toStringAsFixed(0)}%'
-                            : 'Finalizing… ${(_kokoroProgress * 100).toStringAsFixed(0)}%',
+                        _kokoroExtractProgress < 0.30
+                          ? 'Loading model from app bundle…'
+                          : _kokoroExtractProgress < 0.85
+                            ? 'Extracting model files… ${(_kokoroExtractProgress * 100).toStringAsFixed(0)}%'
+                            : 'Finalizing…',
                         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13,
                           color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Please keep the app open during download',
+                        'One-time setup — no internet needed',
                         style: TextStyle(fontSize: 11,
                           color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // --- Model not ready, not extracting (shouldn't happen, but offer re-extract) ---
+              if (!_kokoroModelReady && !_kokoroExtracting)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.build_circle_outlined, size: 40,
+                        color: Theme.of(context).primaryColor.withOpacity(0.7)),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Model needs setup',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'The Kokoro model is bundled with the app. '
+                        'Tap below to extract it (one-time, ~15-30 seconds).',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.unarchive_rounded, color: Colors.white, size: 18),
+                          label: const Text('Extract Model',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () async {
+                            setState(() => _kokoroExtracting = true);
+                            await _voiceService.kokoroTts.reExtractModel(
+                              onProgress: (p) {
+                                if (mounted) setState(() => _kokoroExtractProgress = p);
+                              },
+                            );
+                            if (mounted) {
+                              setState(() {
+                                _kokoroExtracting = false;
+                                _kokoroModelReady = _voiceService.kokoroTts.isModelReady;
+                              });
+                            }
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -523,47 +517,15 @@ class _SettingsScreenState extends State<SettingsScreen>
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Kokoro model ready • ${sizeMb.toStringAsFixed(1)} MB on disk',
+                              'Kokoro model ready • ${sizeMb.toStringAsFixed(1)} MB',
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
                                 color: Colors.green.shade700),
                             ),
                           ),
-                          TextButton.icon(
-                            onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('Delete Kokoro Model?'),
-                                  content: const Text(
-                                    'This will remove all downloaded model files. '
-                                    'You can re-download them anytime.',
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(ctx, false),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(ctx, true),
-                                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (confirm == true) {
-                                await _voiceService.kokoroTts.deleteModel();
-                                if (mounted) {
-                                  setState(() => _kokoroModelReady = false);
-                                }
-                              }
-                            },
-                            icon: const Icon(Icons.delete_outline, size: 16, color: Colors.red),
-                            label: const Text('Delete', style: TextStyle(fontSize: 11, color: Colors.red)),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
+                          Text(
+                            'Built-in',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
+                              color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
                           ),
                         ],
                       ),
